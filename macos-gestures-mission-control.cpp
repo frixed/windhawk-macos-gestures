@@ -1,12 +1,13 @@
 // ==WindhawkMod==
-// @id              macos-gestures-probe
+// @id              macos-gestures-mission-control
 // @name            macOS Gestures - Mission Control
-// @description     Mission Control for Windows: a three-finger swipe up/down opens a live, animated overview of your windows (app icons, minimized windows, taskbar slide, spring physics) that follows your fingers; left/right swipes keep switching apps like Alt+Tab
-// @version         1.3.1
+// @description     Mission Control for Windows: a three- or four-finger swipe up opens a live, animated overview of your windows that follows your fingers. Swipe down for App Exposé or to minimize, Win+Tab from the keyboard, left/right to switch apps.
+// @version         1.6.0
 // @author          Frixed
 // @github          https://github.com/frixed
 // @include         explorer.exe
-// @compilerOptions -luser32 -lwindowsapp -ldwmapi -lgdi32 -ladvapi32 -lole32 -lwindowscodecs -luuid -ld3d11 -ldxgi -ldcomp
+// @architecture    x86-64
+// @compilerOptions -luser32 -lwindowsapp -ldwmapi -lgdi32 -ladvapi32 -lole32 -lwindowscodecs -luuid -ld3d11 -ld2d1 -ldwrite
 // @license         MIT
 // ==/WindhawkMod==
 
@@ -18,10 +19,21 @@
 /*
 # macOS Gestures - Mission Control
 
-Mission Control for Windows. A **three-finger swipe up** on a precision touchpad opens a
-live, animated overview of all your windows; the overview **follows your fingers** the whole
-way, and springs into place when you let go. Swipe back down, press Esc, or pick a window to
-leave.
+![macOS Gestures for Windows](https://i.imgur.com/9ONH63E.gif)
+
+Mission Control for Windows. A **three-finger swipe up** (or four fingers, see the settings)
+on a precision touchpad opens a live, animated overview of all your windows; the overview
+**follows your fingers** the whole way, and springs into place when you let go. Swipe back
+down, press Esc, or pick a window to leave.
+
+* **Swipe down** while Mission Control is closed: App Exposé, the windows of the app in
+  front, without the desktops bar (the settings can show every window of the current
+  desktop instead). Swipe back up to leave. The settings can also make the swipe down
+  **minimize all the windows** of the current desktop: a swipe up then brings them back,
+  as long as nothing else was opened or restored by hand in the meantime.
+* **Win+Tab** opens Mission Control from the keyboard (also without a touchpad), in place of
+  Windows' Task View, on the monitor of the window in front. Win+Tab again, Esc or a pick
+  closes it.
 
 ## What you get
 
@@ -29,42 +41,80 @@ leave.
   playing) laid out in a clean grid, with the app icon and title under each window.
 * Minimized windows are shown too, and dialogs are drawn on top of the window they belong to.
 * The taskbar slides out of the screen with your fingers and comes back when you pick a window.
-* A **virtual desktops bar** flush with the bottom edge: see your desktops, switch to one or
-  create a new one. It fades in with the swipe.
+* A **virtual desktops bar** flush with the bottom edge: see your desktops, switch to one,
+  create a new one, or drag a desktop sideways to reorder them. It fades in with the swipe.
 * A close button on the window under the mouse (also the middle mouse button and the Delete
   key), with the remaining windows gliding to their new places.
 * Keyboard: Esc closes, arrow keys / Tab move the selection, Enter or Space picks it.
+  Alt+Tab cycles through the windows too, and letting go of Alt picks the selected one.
 * Spring physics with the finger speed carried over; pushing further up when everything is
   already open stretches the grid with rubber-band resistance.
 * Respects the Windows "Animation effects" setting, and is switched off over fullscreen
   apps and games.
 
-## Three-finger left / right
+## Left / right swipe
 
-Windows only lets a program take over *all* three-finger swipes at once, so the mod performs
+Windows only lets a program take over *all* the swipes of a finger count at once, so the mod performs
 the Alt+Tab itself: swipe right for Alt+Tab, left for Alt+Shift+Tab, and keep swiping to keep
 cycling. It can also be set to do nothing.
 
 ## Requirements
 
-* Windows 11 and a precision touchpad.
-* The mod runs inside `explorer.exe`.
+* Windows 11 with the touchpad gestures API (`TouchpadGesturesController`) and a precision
+  touchpad for the gestures. On builds without that API the gestures stay off and the log
+  says "TouchpadGesturesController not supported"; Win+Tab works either way.
+* The mod runs only in the shell's `explorer.exe` (not in folder windows opened in a separate
+  process, nor in Explorer's COM helper processes).
+
+## What changes in Windows
+
+* While the mod runs it takes over **all** the swipes of the chosen finger count, so Windows'
+  own actions for that count are off: with three fingers, Task View and show desktop; with
+  four fingers, switching desktops (the left/right swipe does Alt+Tab instead). The other
+  finger count keeps Windows' own gestures. Turning the mod off gives them back.
+* Win+Tab is caught with a keyboard hook. The taskbar's Task View button still opens Windows'
+  Task View, and while an app running as administrator has the focus, Windows doesn't pass
+  its keys to the hook, so Win+Tab opens Task View there.
+* While Mission Control is on screen, Alt+Tab doesn't open Windows' switcher (it doesn't mix
+  with the overlay): it moves the selection between the windows of Mission Control (Shift
+  goes back, holding Tab keeps cycling) and picks the selected one when Alt is let go. The
+  settings can also make it ignore Alt+Tab, or leave it to Windows. Same limit as Win+Tab
+  with apps running as administrator.
+* The left/right swipe sends Alt+Tab as keystrokes. When an app running as administrator has
+  the focus, Windows blocks those keystrokes, so that swipe does nothing there. The desktops
+  bar uses Windows' Win+Ctrl shortcuts the same way and has the same limit.
+
+## Conflicts
+
+* **CoverTabby** with its touchpad option turned on also takes over touchpad swipes. Use
+  only one of the two for touchpad gestures, and only one of them for Win+Tab.
 
 ## Settings
 
 Everything above can be changed from the **Settings** tab: background material (Mica, Mica
-Alt, Acrylic, live blur, blurred wallpaper), swipe distance, which parts to show, and the
-animation tuning (speed, bounce, stretch, background fade).
+Alt, Acrylic, live blur, blurred wallpaper), three or four fingers, Win+Tab, swipe distance,
+which parts to show, and the animation tuning (speed, bounce, stretch, background fade).
 
 ## Notes
 
+* Reordering desktops uses the shell's own (undocumented) virtual desktop interface, in the
+  version of Windows 11 24H2 and later. On other builds the desktops simply can't be dragged;
+  everything else keeps working.
 * The live previews use private DWM functions, which Windows updates can change. If they stop
   working the mod falls back to the classic thumbnails on its own.
 * Other mods that animate windows closing (like *Windows Animations*) are kept from playing
   their animation in front of Mission Control: a window is hidden just before it is closed.
-  Keep that mod's option to animate hidden windows turned off.
-* If the mod does not start at logon, turn on **Verbose logging**: start-up diagnostics are
-  written to `%TEMP%\windhawk-mission-control.log`.
+  Keep that mod's option to animate hidden windows turned off. If the window is still there a
+  moment later (it asked "Save changes?", or it closes to the tray), it is shown again.
+* Mission Control shows up to 24 windows.
+* If the mod does not start at logon, turn on logging in the mod's **Advanced** tab in
+  Windhawk and check the log output: the start-up steps are logged there.
+
+## Support the project
+
+If you enjoy using this mod and would like to support its development, you can make a donation through PayPal. Every contribution is appreciated!
+
+[**Donate with PayPal**](https://www.paypal.com/donate?hosted_button_id=W7BHDHGZP6CHY)
 */
 // ==/WindhawkModReadme==
 
@@ -79,13 +129,36 @@ animation tuning (speed, bounce, stretch, background fade).
   - acrylic: Acrylic (system)
   - liveBlur: Live blur (windows behind stay visible)
   - wallpaper: Blurred wallpaper
+- fingers: three
+  $name: Fingers for the gestures
+  $description: The swipes of the other finger count stay with Windows.
+  $options:
+  - three: Three fingers
+  - four: Four fingers
+- replaceWinTab: true
+  $name: Win+Tab opens Mission Control
+  $description: Replaces Windows' Task View on Win+Tab. Works without a touchpad too.
+- altTabInMissionControl: cycle
+  $name: Alt+Tab while Mission Control is open
+  $description: Windows' own Alt+Tab switcher doesn't work well on top of Mission Control and breaks it. Cycle moves the selection between the windows of Mission Control (Shift goes back) and picks the selected one when you let go of Alt. Ignore does nothing. The last option leaves Alt+Tab to Windows (not recommended).
+  $options:
+  - cycle: Cycle through the windows (let go of Alt to pick)
+  - block: Ignore Alt+Tab
+  - windows: Let Windows handle it
 - swipeDistance: 150
   $name: Swipe distance
-  $description: How far the three fingers travel to go from 0% to 100% (60 to 400). Lower = more sensitive.
+  $description: How far the fingers travel to go from 0% to 100% (60 to 400). Lower = more sensitive.
+- swipeDown: appExpose
+  $name: Swipe down (Mission Control closed)
+  $description: What a swipe down does while Mission Control is not on screen. App Exposé shows only the windows of the app in front. All windows shows every window of the current desktop, without the desktops bar. Minimize hides every window of the current desktop, and a swipe up brings them back.
+  $options:
+  - appExpose: App Exposé (windows of the app in front)
+  - allWindows: All windows of the current desktop
+  - minimize: Minimize all windows
 - invertSwipe: false
   $name: Invert swipe direction
 - horizontalSwipe: altTab
-  $name: Three-finger left/right swipe
+  $name: Left/right swipe
   $description: Windows cannot be asked to keep only the horizontal swipe, so the mod can perform the Alt+Tab itself.
   $options:
   - altTab: Switch apps (Alt+Tab)
@@ -115,13 +188,13 @@ animation tuning (speed, bounce, stretch, background fade).
   $name: Close windows with the middle mouse button
 - hideBeforeClose: true
   $name: Hide a window right before closing it from Mission Control
-  $description: Keeps the close animation of other mods (like Windows Animations) from playing on screen in front of Mission Control, because an already hidden window has nothing to animate. If such a mod animates windows that get hidden, turn that option off in it. An app that asks for confirmation (Save changes?) is brought back after a moment, and an app that closes to the tray stays in the tray.
+  $description: Keeps the close animation of other mods (like Windows Animations) from playing on screen in front of Mission Control, because an already hidden window has nothing to animate. If such a mod animates windows that get hidden, turn that option off in it. A window that is still there a moment later is shown again, so an app that asks for confirmation (Save changes?) brings its prompt back, and an app that closes to the tray shows up once more and can be closed to the tray from there.
 - keyboardSupport: true
   $name: Keyboard support
-  $description: Esc closes, arrow keys or Tab move the selection, Enter or Space picks it, Delete closes the selected window.
+  $description: Esc closes, arrow keys or Tab move the selection, Enter or Space picks it, Delete closes the selected window. Needed for Win+Tab to be useful without a mouse.
 - disableInFullscreen: true
   $name: Disable Mission Control over fullscreen apps and games
-  $description: The three-finger swipe up/down is ignored while a fullscreen app has the screen. Left/right keeps working.
+  $description: The swipe up/down is ignored while a fullscreen app has the screen. Left/right and Win+Tab keep working.
 - respectReducedMotion: true
   $name: Respect Windows "Animation effects"
   $description: When animations are turned off in Windows accessibility settings, springs and fades are skipped.
@@ -143,37 +216,29 @@ animation tuning (speed, bounce, stretch, background fade).
 - prewarm: true
   $name: Prepare icons in the background at startup
   $description: Makes the first gesture after loading the mod smoother.
-- verboseLogging: false
-  $name: Verbose logging
 */
 // ==/WindhawkModSettings==
 
 #include <windows.h>
 #include <dwmapi.h>
 #include <wincodec.h>
-// Thumbnails through DirectComposition (the same private DWM API Task View
-// and Alt-Tab use) instead of one DwmUpdateThumbnailProperties round trip to
-// dwm.exe per tile per frame. Set to 0 to build without it (legacy path only).
-#define USE_DCOMP_THUMBNAILS 1
-
-#if USE_DCOMP_THUMBNAILS
 #include <d3d11.h>
 #include <dxgi.h>
-#include <dxgi1_2.h>
 #include <dcomp.h>
 #include <shobjidl.h>
-#endif
+#include <d2d1.h>
+#include <dwrite_1.h>
+#include <windhawk_utils.h>
 
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.UI.Input.h>
-#include <winrt/Windows.UI.Core.h>
-#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.UI.Core.h>  // PointerEventArgs
 #include <algorithm>
+#include <atomic>
 #include <array>
 #include <cmath>
 #include <cstdint>
-#include <cstdarg>
 #include <cstring>
 #include <cstdlib>
 #include <cwchar>
@@ -202,12 +267,6 @@ constexpr float COMMIT_THRESHOLD = 0.5f;
 // Overlay only appears after this much progress (avoids flashes on taps).
 constexpr float SHOW_THRESHOLD = 0.01f;
 
-// If true, Windows keeps handling its own three-finger actions (Task View,
-// desktop switching). Then Windows ALSO opens Task View on a swipe up.
-constexpr bool KEEP_NATIVE_ACTIONS = false;
-
-static bool VERBOSE_LOGGING = false;
-
 // Backdrop:
 //   2 = your wallpaper, blurred and dimmed, painted by the mod (opaque, so the
 //       real windows underneath never show through)
@@ -234,29 +293,22 @@ constexpr int BACKDROP_TINT_ALPHA = 0x66;
 // 2 = Mica, 3 = Acrylic, 4 = Mica Alt.
 static int BACKDROP_TYPE = 2;  // Mica
 
-// Hover outline around the window under the mouse (pixels).
-constexpr int HL_GAP = 4;      // space between thumbnail and outline
-constexpr int HL_THICK = 3;    // outline thickness
-constexpr int HL_RADIUS = 12;  // outline corner radius
-constexpr int HL_PAD = 10;     // room around the outline
+// Hover outline around the window under the mouse (physical pixels, scaled
+// with the monitor DPI in UpdateUiScale()).
+static int HL_GAP = 4;      // space between thumbnail and outline
+static int HL_THICK = 3;    // outline thickness
+static int HL_RADIUS = 12;  // outline corner radius
+static int HL_PAD = 10;     // room around the outline
 
-// Mica only renders while its window is ACTIVE (inactive windows get a flat
-// fallback color). If true the overlay takes focus while open and gives it
-// back to the previous window when it closes without picking anything.
-constexpr bool ACTIVATE_OVERLAY = true;
-
-// A window that isn't active draws its Mica as a flat fallback color, and its
-// thumbnail shows exactly that. If the picked window were only activated when
-// the animation ends, its Mica would switch on all at once at that moment. With
-// this on, it is activated as soon as you pick it, so its Mica comes in while
-// the thumbnail is still flying back (the thumbnails are live). The overlay is
-// then forced to keep its own active look so its backdrop doesn't go flat.
-constexpr bool ACTIVATE_PICK_EARLY = true;
-
-// Fade the whole overlay in with layered alpha. If Mica doesn't show up on
-// your build while this is true, set it to false (the overlay then pops in
-// instead of fading).
-constexpr bool FADE_WITH_ALPHA = true;
+// Focus handling:
+// * Mica only renders while its window is ACTIVE (inactive windows get a flat
+//   fallback color), so the overlay takes focus while open and gives it back
+//   to the previous window when it closes without picking anything.
+// * An inactive window also draws its own Mica flat, and its live thumbnail
+//   shows exactly that. The picked window is therefore activated as soon as it
+//   is picked, so its Mica comes in while the thumbnail is still flying back,
+//   and the overlay is forced to keep its active look meanwhile.
+// The overlay fades in with layered alpha (see OVERLAY_MAX_ALPHA).
 
 // Max alpha of the overlay. Keep this at 255: any value below it makes DWM
 // blend the window as a semi-transparent layered window, which breaks the
@@ -280,12 +332,15 @@ constexpr UINT_PTR HL_TIMER_ID = 3;
 // Mission Control closes. TASKBAR_HIDE_END is the progress at which it is gone.
 static bool SLIDE_TASKBAR = true;
 constexpr float TASKBAR_HIDE_END = 0.55f;
-constexpr int TASKBAR_EXTRA_PX = 12;  // slide a bit past its own size (floating taskbar margin)
+constexpr float TASKBAR_EXTRA_PX = 12.0f;  // slide a bit past its own size (floating taskbar margin, at 100 % DPI)
 
 // Start-up: the touchpad stack / shell may not be ready when explorer loads the
 // mod at logon, so initialization is retried. This also re-checks the
 // controller settings now and then in case something else changed them.
 constexpr UINT INIT_RETRY_MS = 2000;
+// After 30 failed attempts every 2 s the retries slow down to every 10 s, and
+// after this many more the mod stops trying (no supported touchpad).
+constexpr int SLOW_RETRY_ATTEMPTS = 30;
 constexpr UINT ANIM_INTERVAL_MS = 8;  // fallback timer only (see the vsync clock below)
 
 // Release animation = a real spring, started with the speed your fingers had
@@ -312,14 +367,22 @@ constexpr float FLING_PROJECTION_S = 0.12f;
 static float FADE_START_PROGRESS = 0.06f;  // the backdrop starts to appear here...
 static float FADE_END_PROGRESS = 0.18f;    // ...and is fully there here
 
-constexpr UINT WM_APP_FRAME = WM_APP + 1;  // posted by the vsync clock thread
+constexpr UINT WM_APP_FRAME = WM_APP + 1;     // posted by the vsync clock thread
+constexpr UINT WM_APP_SETTINGS = WM_APP + 2;  // thread message: reload the settings
+// Window messages the keyboard hook thread posts to the overlay window. They go to
+// the window and not to the thread because a modal loop on the UI thread (the wait
+// of an outgoing COM call, say) dispatches thread messages to nobody and loses them.
+constexpr UINT WM_APP_WIN_TAB = WM_APP + 3;     // Win+Tab was pressed
+constexpr UINT WM_APP_ALT_TAB = WM_APP + 4;     // Alt+Tab in Mission Control (wParam 1 = forward)
+constexpr UINT WM_APP_ALT_COMMIT = WM_APP + 5;  // Alt let go after cycling with Alt+Tab
 
 // App icon centered under each tile. Drawn as DirectComposition visuals, so
 // moving and fading them costs nothing on the CPU side. Its fade is driven by
 // the same progress as the finger swipe: invisible until ICON_FADE_START, fully
 // visible at 100%, and it fades back out as you close.
 static bool SHOW_ICONS = true;
-static float g_uiScale = 1.0f;  // see UpdateUiScale()
+static float g_uiScale = 1.0f;   // see UpdateUiScale()
+static float g_dpiScale = 1.0f;  // monitor DPI / 96
 static int ICON_SIZE = 56;          // px
 static int ICON_GAP = 14;           // px between the tile and its icon
 constexpr float ICON_FADE_START = 0.55f;
@@ -338,7 +401,7 @@ constexpr float EMPTY_FADE_START = 0.25f;
 static float DRAG_OVERSHOOT_MAX = 0.12f;
 constexpr float DRAG_RUBBER_STIFFNESS = 0.6f;
 
-// Three-finger swipes are sorted by direction once the fingers have travelled
+// Swipes are sorted by direction once the fingers have travelled
 // AXIS_LOCK_DISTANCE (touchpad units): up/down drives Mission Control, left/right
 // switches apps like Windows does. Windows itself can't be asked to keep only
 // the horizontal swipe (a gesture type goes either to the system or to us as a
@@ -368,6 +431,13 @@ static bool SHOW_ALWAYS_ON_TOP = true;
 static bool CLOSE_BUTTON = true;
 static bool SHOW_TITLES = true;
 static bool DESKTOP_BAR = true;
+static int FINGER_COUNT = 3;          // fingers of the swipes (3 or 4)
+static std::atomic<bool> REPLACE_WIN_TAB{true};   // Win+Tab opens Mission Control (the keyboard hook thread reads it too)
+static std::atomic<int> ALT_TAB_MC_MODE{2};  // Alt+Tab while Mission Control is on screen: 0 = Windows handles it, 1 = ignored, 2 = cycles the selection (the hook thread reads it too)
+static int SWIPE_DOWN_MODE = 0;  // swipe down (Mission Control closed): 0 = App Exposé (windows of the app in front), 1 = all windows, 2 = minimize all windows
+// A swipe down that minimizes fires once the fingers travelled this share of
+// GESTURE_DISTANCE (so the "Swipe distance" setting also tunes this one).
+constexpr float MINIMIZE_TRIGGER_FRACTION = 0.35f;
 static bool HIDE_BEFORE_CLOSE = true;
 static bool MIDDLE_CLICK_CLOSE = true;
 static bool KEYBOARD_SUPPORT = true;
@@ -417,28 +487,28 @@ constexpr float TILE_XFADE_END = 0.08f;
 // Globals: WinRT controller / thread
 // ---------------------------------------------------------------------------
 
-static TouchpadGesturesController g_controller{ nullptr };
+// Released on its own STA thread in CleanupController(). Windhawk doesn't call
+// Wh_ModUninit when explorer itself exits, and a destructor running then, after
+// that apartment is gone, could hang or crash the exit: so no destructor.
+[[clang::no_destroy]] static TouchpadGesturesController g_controller{ nullptr };
 
 static HANDLE g_thread = nullptr;
-static HANDLE g_readyEvent = nullptr;
+static HANDLE g_readyEvent = nullptr;  // set once the thread has a message queue
 static DWORD g_threadId = 0;
 
 static event_token g_pressedToken{};
 static event_token g_movedToken{};
 static event_token g_releasedToken{};
-static event_token g_actionToken{};
 
 static bool g_pressedRegistered = false;
 static bool g_movedRegistered = false;
 static bool g_releasedRegistered = false;
-static bool g_actionRegistered = false;
 
 static bool g_previousEnabled = false;
 static TouchpadGlobalGestureKinds g_previousGestures =
     TouchpadGlobalGestureKinds::None;
 
 static bool g_previousStateSaved = false;
-static LONG g_moveCount = 0;
 
 struct TrackedPointer {
     uint32_t id = 0;
@@ -447,7 +517,7 @@ struct TrackedPointer {
     bool active = false;
 };
 
-static std::array<TrackedPointer, 3> g_pointers{};
+static std::array<TrackedPointer, 5> g_pointers{};  // room for one finger too many
 static bool g_hasPreviousCentroid = false;
 static float g_previousCentroidX = 0.0f;
 static float g_previousCentroidY = 0.0f;
@@ -465,31 +535,44 @@ struct Tile {
     bool placed = false;
 
     // DirectComposition path (null when the tile uses the legacy thumbnail).
-    void* dcVisual = nullptr;      // IDCompositionVisual2*
+    IDCompositionVisual2* dcVisual = nullptr;
     HTHUMBNAIL dcThumb = nullptr;
     float srcW = 1.0f;             // natural size of the thumbnail visual
     float srcH = 1.0f;
 
     bool minimized = false;        // tile of a minimized window
     bool fadeIn = false;           // its opacity follows the swipe progress
-    void* dcFx = nullptr;          // IDCompositionEffectGroup* (tile opacity)
+    IDCompositionEffectGroup* dcFx = nullptr;  // tile opacity
     float fxOp = 1.0f;
 
-    void* iconVisual = nullptr;    // IDCompositionVisual2*
-    void* iconFx = nullptr;        // IDCompositionEffectGroup*
+    IDCompositionVisual2* iconVisual = nullptr;
+    IDCompositionEffectGroup* iconFx = nullptr;
     bool iconPlaced = false;
     float iconOp = 0.0f;
 
     bool topmost = false;          // always-on-top window
-    bool xfade = false;            // the tile cross-fades into the real window at the end
-    bool closing = false;          // WM_CLOSE sent, waiting for it to go away
-    double closeMs = 0.0;
     RECT toPrev{};                 // where it was drawn before the last relayout
     std::vector<Tile> kids;        // owned dialogs, drawn on top of this tile
 };
 
 static std::vector<Tile> g_tiles;
 static HWND g_overlay = nullptr;
+
+// Timer of the desktops bar animation. SetTimer with an ID that is still running
+// restarts its countdown, so asking for it on every mouse move of a card drag
+// kept it from ever firing: only set it when it isn't running.
+static bool g_barTimerSet = false;
+static void StartBarTimer() {
+    if (g_overlay && !g_barTimerSet) {
+        g_barTimerSet = SetTimer(g_overlay, BAR_TIMER_ID, 15, nullptr) != 0;
+    }
+}
+static void StopBarTimer() {
+    if (g_overlay) {
+        KillTimer(g_overlay, BAR_TIMER_ID);
+    }
+    g_barTimerSet = false;
+}
 static HBRUSH g_backdropBrush = nullptr;
 static bool g_classRegistered = false;
 static bool g_micaOk = false;  // true when a blurred backdrop was applied
@@ -510,9 +593,13 @@ static bool g_wallpaperOk = false;
 static BYTE g_accR = 0, g_accG = 120, g_accB = 212;
 static RECT g_workRect{};  // despite the name: the full monitor rect
 
-static bool g_visible = false;   // overlay window shown
+static std::atomic<bool> g_visible{false};   // overlay window shown (the keyboard hook thread reads it too)
 static bool g_open = false;      // committed open (accepts clicks)
-static bool g_dragging = false;  // three fingers currently driving it
+static bool g_dragging = false;  // the fingers are currently driving it
+// App Exposé: opened with a swipe DOWN, shows the windows without the desktops
+// bar, and the swipe direction is reversed (up closes it). Until the overlay hides.
+static bool g_exposeMode = false;
+static bool g_exposeAppOnly = false;  // App Exposé lists only the windows of the app that was in front
 static float g_progress = 0.0f;  // 0 = windows in place, 1 = grid
 static float g_target = 0.0f;
 static float g_dragBase = 0.0f;
@@ -550,53 +637,13 @@ static bool g_darkTheme = true;
 
 static bool g_eventsSeen = false;     // touchpad events have arrived since the controller was (re)created
 
-// Start-up diagnostics: always in the Windhawk log and, with "Verbose logging"
-// on, also in %TEMP%\windhawk-mission-control.log (the live log is gone after a
-// reboot, and the problems at logon happen before anyone can look at it).
-static void BootLog(const wchar_t* fmt, ...) {
-    wchar_t msg[512];
-    va_list ap;
-    va_start(ap, fmt);
-    _vsnwprintf(msg, 511, fmt, ap);
-    va_end(ap);
-    msg[511] = 0;
-    Wh_Log(L"%s", msg);
-
-    if (!VERBOSE_LOGGING) {
-        return;
-    }
-    wchar_t path[MAX_PATH + 1] = {};
-    const DWORD n = GetTempPathW(MAX_PATH, path);
-    if (!n || n > MAX_PATH - 40) {
-        return;
-    }
-    lstrcatW(path, L"windhawk-mission-control.log");
-    HANDLE f = CreateFileW(path, FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
-                           nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (f == INVALID_HANDLE_VALUE) {
-        return;
-    }
-    LARGE_INTEGER size{};
-    if (GetFileSizeEx(f, &size) && size.QuadPart < 256 * 1024) {
-        SYSTEMTIME st;
-        GetLocalTime(&st);
-        wchar_t line[640];
-        _snwprintf(line, 639, L"%02d:%02d:%02d.%03d pid=%lu %s\r\n", st.wHour, st.wMinute,
-                   st.wSecond, st.wMilliseconds, GetCurrentProcessId(), msg);
-        line[639] = 0;
-        char utf8[2048];
-        const int len = WideCharToMultiByte(CP_UTF8, 0, line, -1, utf8, sizeof(utf8), nullptr, nullptr);
-        if (len > 1) {
-            DWORD written = 0;
-            WriteFile(f, utf8, static_cast<DWORD>(len - 1), &written, nullptr);
-        }
-    }
-    CloseHandle(f);
-}
-
 static bool g_reduceMotion = false;   // Windows "Animation effects" are off
 static double g_lastHideMs = -1.0e9;  // when the overlay was last hidden
 static int g_kbSel = -1;              // tile selected with the keyboard
+static bool g_openFromKeyboard = false;  // Win+Tab: open on the monitor of the window in front, not the cursor's
+static std::vector<HWND> g_swipeMinimized;  // windows the last "minimize all" swipe minimized, bottom to top
+static bool g_altCycleActive = false; // Alt+Tab is cycling the selection (Alt still held)
+static POINT g_altMouseAnchor{};      // where the cursor was (client coordinates) when it started
 static POINT g_lastMouse{ -1, -1 };
 static bool g_hoverClose = false;     // mouse is over the close button
 static bool g_relayoutActive = false; // grid gliding to a new layout
@@ -614,25 +661,20 @@ static std::vector<std::pair<int, int>> g_barThumbQueue;  // (card, window) thum
 static int g_pendingDesktop = 0;       // 1 = create a desktop, 2 = switch to another
 static int g_pendingDesktopDelta = 0;
 
-// IVirtualDesktopManager (documented), declared here so the build does not
-// depend on the header having it.
-struct IVDManager : public IUnknown {
-    virtual HRESULT STDMETHODCALLTYPE IsWindowOnCurrentVirtualDesktop(HWND, BOOL*) = 0;
-    virtual HRESULT STDMETHODCALLTYPE GetWindowDesktopId(HWND, GUID*) = 0;
-    virtual HRESULT STDMETHODCALLTYPE MoveWindowToDesktop(HWND, REFGUID) = 0;
-};
+// Dragging a desktop card sideways reorders the desktops.
+static int g_cardPress = -1;           // card under the left button, -1 = none
+static POINT g_cardPressPt{};
+static bool g_cardDrag = false;        // it moved far enough to be a drag
+static int g_cardGrabDx = 0;           // mouse x - card x at the press
+static int g_cardDrop = -1;            // slot it would be dropped in
+static std::vector<int> g_cardSlots;   // x of every desktop slot, from the press
 
-static IVDManager* g_vdm = nullptr;  // created on first use
+static IVirtualDesktopManager* g_vdm = nullptr;  // created on first use
 
-static const GUID kClsidVirtualDesktopManager =
-    { 0xAA509086, 0x5CA9, 0x4C25, { 0x8F, 0x95, 0x58, 0x9D, 0x3C, 0x07, 0xB4, 0x8A } };
-static const GUID kIidVirtualDesktopManager =
-    { 0xA5CD92FF, 0x29BE, 0x454C, { 0x8D, 0x04, 0xD8, 0x28, 0x79, 0xFB, 0x3F, 0x1B } };
-
-static IVDManager* GetVdm() {
+static IVirtualDesktopManager* GetVdm() {
     if (!g_vdm) {
-        const HRESULT hr = CoCreateInstance(kClsidVirtualDesktopManager, nullptr, CLSCTX_ALL,
-                                            kIidVirtualDesktopManager,
+        const HRESULT hr = CoCreateInstance(CLSID_VirtualDesktopManager, nullptr, CLSCTX_ALL,
+                                            IID_IVirtualDesktopManager,
                                             reinterpret_cast<void**>(&g_vdm));
         static bool logged = false;
         if (FAILED(hr) && !logged) {
@@ -642,6 +684,76 @@ static IVDManager* GetVdm() {
         }
     }
     return g_vdm;
+}
+
+// Reordering desktops uses IVirtualDesktopManagerInternal, the shell's own
+// undocumented interface (the one Task View uses). Its methods change between
+// Windows builds and its IID changes with them: this is the layout of Windows
+// 11 24H2 and later (from 26100.2605). On any other build the query fails and
+// the cards can't be dragged.
+struct IVdmInternal : public IUnknown {
+    virtual HRESULT STDMETHODCALLTYPE GetCount(UINT* count) = 0;
+    virtual HRESULT STDMETHODCALLTYPE MoveViewToDesktop(IUnknown* view, IUnknown* desktop) = 0;
+    virtual HRESULT STDMETHODCALLTYPE CanViewMoveDesktops(IUnknown* view, int* can) = 0;
+    virtual HRESULT STDMETHODCALLTYPE GetCurrentDesktop(IUnknown** desktop) = 0;
+    virtual HRESULT STDMETHODCALLTYPE GetDesktops(IObjectArray** desktops) = 0;
+    virtual HRESULT STDMETHODCALLTYPE GetAdjacentDesktop(IUnknown* from, UINT direction,
+                                                         IUnknown** desktop) = 0;
+    virtual HRESULT STDMETHODCALLTYPE SwitchDesktop(IUnknown* desktop) = 0;
+    virtual HRESULT STDMETHODCALLTYPE SwitchDesktopAndMoveForegroundView(IUnknown* desktop) = 0;
+    virtual HRESULT STDMETHODCALLTYPE CreateDesktop(IUnknown** desktop) = 0;
+    virtual HRESULT STDMETHODCALLTYPE MoveDesktop(IUnknown* desktop, UINT index) = 0;
+    virtual HRESULT STDMETHODCALLTYPE RemoveDesktop(IUnknown* desktop, IUnknown* fallback) = 0;
+    virtual HRESULT STDMETHODCALLTYPE FindDesktop(const GUID* id, IUnknown** desktop) = 0;
+};
+
+constexpr GUID kClsidImmersiveShell = {
+    0xC2F03A33, 0x21F5, 0x47FA, { 0xB4, 0xBB, 0x15, 0x63, 0x62, 0xA2, 0xF2, 0x39 } };
+constexpr GUID kSidVdmInternal = {
+    0xC5E0CDCA, 0x7B6E, 0x41B2, { 0x9F, 0xC4, 0xD9, 0x39, 0x75, 0xCC, 0x46, 0x7B } };
+constexpr GUID kIidVdmInternal = {
+    0x53F5CA0B, 0x158F, 0x4124, { 0x90, 0x0C, 0x05, 0x71, 0x58, 0x06, 0x0B, 0x27 } };
+
+static IVdmInternal* g_vdmInternal = nullptr;  // created on first use
+static bool g_vdmUnavailable = false;  // the query failed once: don't repeat it on every click
+
+static IVdmInternal* GetVdmInternal() {
+    if (g_vdmInternal || g_vdmUnavailable) {
+        return g_vdmInternal;
+    }
+    IServiceProvider* shell = nullptr;
+    HRESULT hr = CoCreateInstance(kClsidImmersiveShell, nullptr, CLSCTX_LOCAL_SERVER,
+                                  IID_IServiceProvider, reinterpret_cast<void**>(&shell));
+    if (SUCCEEDED(hr) && shell) {
+        hr = shell->QueryService(kSidVdmInternal, kIidVdmInternal,
+                                 reinterpret_cast<void**>(&g_vdmInternal));
+        shell->Release();
+    }
+    if (FAILED(hr) || !g_vdmInternal) {
+        g_vdmUnavailable = true;
+        Wh_Log(L"Desktop bar: reordering desktops isn't available on this Windows build (0x%08X).",
+               static_cast<unsigned>(hr));
+    }
+    return g_vdmInternal;
+}
+
+// Moves a desktop to a position (0 = first), as dragging it in Task View does.
+static bool MoveDesktopTo(const GUID& id, int index) {
+    IVdmInternal* m = GetVdmInternal();
+    if (!m) {
+        return false;
+    }
+    IUnknown* desktop = nullptr;
+    HRESULT hr = m->FindDesktop(&id, &desktop);
+    if (SUCCEEDED(hr) && desktop) {
+        hr = m->MoveDesktop(desktop, static_cast<UINT>(index));
+        desktop->Release();
+    }
+    if (FAILED(hr)) {
+        Wh_Log(L"Desktop bar: moving the desktop failed (0x%08X).", static_cast<unsigned>(hr));
+        return false;
+    }
+    return true;
 }
 
 // A window shown (as a live thumbnail or a wireframe) inside a desktop card.
@@ -656,26 +768,27 @@ struct DesktopCard {
     bool isAdd = false;       // the "+" card
     bool current = false;
     std::vector<CardWin> wins;  // windows of this desktop (top-most first)
-    int x = 0;                // position inside the bar
+    bool autoName = false;    // no name of its own: "Desktop N" by position
+    int x = 0;                // position inside the bar (where it belongs)
+    float drawX = 0.0f;       // where it is drawn (glides to x after a reorder)
     int w = 0;
-    void* visual = nullptr;   // IDCompositionVisual2*
+    IDCompositionVisual2* visual = nullptr;
     float hover = 0.0f;
     float hoverTarget = 0.0f;
 
-    void* thumbHost = nullptr;  // IDCompositionVisual2*: holds the live thumbnails
-    void* thumbTop = nullptr;   // top-most thumbnail added so far
-    std::vector<void*> thumbVisuals;
+    IDCompositionVisual2* thumbHost = nullptr;  // holds the live thumbnails
+    IDCompositionVisual2* thumbTop = nullptr;   // top-most thumbnail added so far
+    std::vector<IDCompositionVisual2*> thumbVisuals;
     std::vector<HTHUMBNAIL> thumbs;
-    void* xVisual = nullptr;    // IDCompositionVisual2*: the close button
-    void* xFx = nullptr;        // IDCompositionEffectGroup*: its opacity
+    IDCompositionVisual2* xVisual = nullptr;  // the close button
+    IDCompositionEffectGroup* xFx = nullptr;  // its opacity
 };
 static std::vector<DesktopCard> g_cards;
 
-// "No apps opened" as a DirectComposition visual (void* so this compiles
-// without the DComp headers).
-static void* g_emptyVisual = nullptr;   // IDCompositionVisual2*
-static void* g_emptyFx = nullptr;       // IDCompositionEffectGroup*
-static void* g_emptySurface = nullptr;  // IDCompositionSurface*
+// "No apps opened" as a DirectComposition visual.
+static IDCompositionVisual2* g_emptyVisual = nullptr;
+static IDCompositionEffectGroup* g_emptyFx = nullptr;
+static IDCompositionSurface* g_emptySurface = nullptr;
 static int g_emptyW = 0, g_emptyH = 0;
 static bool g_emptyPlaced = false;
 static float g_emptyOp = 0.0f;
@@ -722,6 +835,60 @@ static RECT LerpRect(const RECT& a, const RECT& b, float t) {
     return r;
 }
 
+// The mod's own module (window classes are registered with it, not explorer's).
+extern "C" IMAGE_DOS_HEADER __ImageBase;
+static HINSTANCE ModuleInstance() {
+    return reinterpret_cast<HINSTANCE>(&__ImageBase);
+}
+
+// Window titles are read with InternalGetWindowText, which doesn't send
+// WM_GETTEXT: File Explorer windows live on other threads of this same process,
+// and a hung one (a stalled network drive) would otherwise freeze this thread.
+static bool HasWindowTitle(HWND hwnd) {
+    wchar_t c[2] = {};
+    return InternalGetWindowText(hwnd, c, 2) > 0;
+}
+
+// 1 = this process owns the shell (desktop) window, -1 = another process does,
+// 0 = there is no shell window yet (explorer is still starting).
+static int ShellWindowOwner() {
+    HWND shell = GetShellWindow();
+    if (!shell) {
+        return 0;
+    }
+    DWORD pid = 0;
+    GetWindowThreadProcessId(shell, &pid);
+    return pid == GetCurrentProcessId() ? 1 : -1;
+}
+
+// Explorer's extra processes: folder windows opened in a separate process and
+// COM servers ("/factory,{...} -Embedding", "/separate").
+static bool IsSecondaryExplorerCommandLine() {
+    std::wstring cmd = GetCommandLineW();
+    for (auto& ch : cmd) {
+        ch = static_cast<wchar_t>(towlower(ch));
+    }
+    return cmd.find(L"/factory") != std::wstring::npos ||
+           cmd.find(L"-embedding") != std::wstring::npos ||
+           cmd.find(L"/separate") != std::wstring::npos;
+}
+
+// Effective DPI of a monitor (96 if it can't be read).
+static UINT MonitorDpi(HMONITOR mon) {
+    typedef HRESULT(WINAPI * PFN_GetDpiForMonitor)(HMONITOR, int, UINT*, UINT*);
+    static PFN_GetDpiForMonitor pGetDpi = [] {
+        HMODULE shcore = LoadLibraryExW(L"shcore.dll", nullptr, LOAD_LIBRARY_SEARCH_SYSTEM32);
+        return shcore ? reinterpret_cast<PFN_GetDpiForMonitor>(reinterpret_cast<void*>(
+                            GetProcAddress(shcore, "GetDpiForMonitor")))
+                      : nullptr;
+    }();
+    UINT dx = 96, dy = 96;
+    if (!pGetDpi || !mon || FAILED(pGetDpi(mon, 0 /*MDT_EFFECTIVE_DPI*/, &dx, &dy)) || dx < 96) {
+        return 96;
+    }
+    return dx;
+}
+
 // ---------------------------------------------------------------------------
 // Window collection + layout
 // ---------------------------------------------------------------------------
@@ -729,7 +896,11 @@ static RECT LerpRect(const RECT& a, const RECT& b, float t) {
 struct EnumCtx {
     RECT work;
     std::vector<HWND> hwnds;
+    bool noCap = false;                    // list every window, not just the ones that fit in the grid
+    const std::wstring* appKey = nullptr;  // only the windows of this app (App Exposé)
 };
+
+static bool GetAppKey(HWND hwnd, std::wstring& key);
 
 // Click-through / fully transparent overlays (GPU overlays, widgets...).
 static bool IsInvisibleLayered(HWND hwnd, LONG_PTR ex) {
@@ -842,7 +1013,7 @@ static BOOL CALLBACK KidEnumProc(HWND h, LPARAM lp) {
 
     // Real dialogs have a caption or a title; menus and tooltips do not.
     const LONG_PTR st = GetWindowLongPtrW(h, GWL_STYLE);
-    if ((st & WS_CAPTION) != WS_CAPTION && GetWindowTextLengthW(h) == 0) {
+    if ((st & WS_CAPTION) != WS_CAPTION && !HasWindowTitle(h)) {
         return TRUE;
     }
 
@@ -873,7 +1044,7 @@ static BOOL CALLBACK EnumProc(HWND hwnd, LPARAM lp) {
     // out. (Their cloak would exclude most of them, but a minimized window of
     // another desktop is not cloaked.) A window shown on every desktop counts
     // as being on the current one.
-    if (IVDManager* vdm = GetVdm()) {
+    if (IVirtualDesktopManager* vdm = GetVdm()) {
         BOOL onThis = TRUE;
         if (SUCCEEDED(vdm->IsWindowOnCurrentVirtualDesktop(hwnd, &onThis)) && !onThis) {
             return TRUE;
@@ -914,7 +1085,7 @@ static BOOL CALLBACK EnumProc(HWND hwnd, LPARAM lp) {
         return TRUE;
     }
 
-    if (GetWindowTextLengthW(hwnd) == 0) {
+    if (!HasWindowTitle(hwnd)) {
         return TRUE;
     }
 
@@ -939,8 +1110,15 @@ static BOOL CALLBACK EnumProc(HWND hwnd, LPARAM lp) {
         return TRUE;
     }
 
+    if (ctx->appKey) {
+        std::wstring key;
+        if (!GetAppKey(hwnd, key) || key != *ctx->appKey) {
+            return TRUE;
+        }
+    }
+
     ctx->hwnds.push_back(hwnd);
-    return ctx->hwnds.size() < MAX_TILES;  // FALSE stops the enumeration
+    return ctx->noCap || ctx->hwnds.size() < MAX_TILES;  // FALSE stops the enumeration
 }
 
 static float Smooth01(float t) {
@@ -1192,7 +1370,6 @@ static bool TileContains(const Tile& t, POINT pt) {
 // mod silently falls back to the old DwmRegisterThumbnail path.
 // ---------------------------------------------------------------------------
 
-#if USE_DCOMP_THUMBNAILS
 
 typedef HRESULT(WINAPI* PFN_DwmpCreateSharedThumbnailVisual)(
     HWND hwndDestination, HWND hwndSource, DWORD dwThumbnailFlags,
@@ -1264,6 +1441,8 @@ static void ShutdownDComp() {
     if (g_barStrip) { g_barStrip->Release(); g_barStrip = nullptr; }
     for (auto& xs : g_xSurf) { if (xs) { xs->Release(); xs = nullptr; } }
     if (g_vdm) { g_vdm->Release(); g_vdm = nullptr; }
+    if (g_vdmInternal) { g_vdmInternal->Release(); g_vdmInternal = nullptr; }
+    g_vdmUnavailable = false;  // a new device (or a reload) may get it
     if (g_d3dCtx) { g_d3dCtx->Release(); g_d3dCtx = nullptr; }
     if (g_dcRoot) { g_dcRoot->Release(); g_dcRoot = nullptr; }
     if (g_dcTarget) { g_dcTarget->Release(); g_dcTarget = nullptr; }
@@ -1275,7 +1454,7 @@ static void ShutdownDComp() {
         g_thumbHost = nullptr;
     }
     if (g_thumbHostClassRegistered) {
-        UnregisterClassW(kThumbHostClass, GetModuleHandleW(nullptr));
+        UnregisterClassW(kThumbHostClass, ModuleInstance());
         g_thumbHostClassRegistered = false;
     }
 }
@@ -1324,7 +1503,7 @@ static bool InitDComp() {
         return false;
     }
 
-    HINSTANCE inst = GetModuleHandleW(nullptr);
+    HINSTANCE inst = ModuleInstance();
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = ThumbHostProc;
@@ -1623,90 +1802,207 @@ static IDCompositionSurface* CreatePixelSurface(const std::vector<uint32_t>& px,
     return surf;
 }
 
-// Renders one line of text into premultiplied BGRA pixels.
-//
-// The text is drawn white on black with grayscale smoothing, which gives the
-// coverage of every pixel directly; that coverage becomes the alpha of ONE flat
-// color. (Recovering the alpha from a black and a white rendering, as the icons
-// do, is inexact for text and leaves a bold, haloed look.)
-constexpr float TEXT_ALPHA_GAMMA = 1.0f;  // above 1 = thinner, below 1 = bolder
+// Text is drawn with Direct2D + DirectWrite into a premultiplied BGRA bitmap.
+// It sits on a transparent surface, where ClearType can't work, so it uses
+// grayscale antialiasing, tuned for small interface text:
+// * GDI-natural rendering: glyph outlines are hinted to the pixel grid, so
+//   stems land on whole pixels (one dark column instead of two or three gray
+//   ones), while the spacing keeps the font's natural widths.
+// * Extra contrast for the grayscale edges, so the text reads dark and solid.
+static ID2D1Factory* g_d2dFactory = nullptr;
+static IDWriteFactory* g_dwFactory = nullptr;
+static IWICImagingFactory* g_textWic = nullptr;
+static IDWriteRenderingParams* g_textParams = nullptr;
 
+// How much darker the antialiased edges of the text are drawn (0 = plain
+// coverage). Higher = bolder, crisper-looking text.
+constexpr float TEXT_GRAY_CONTRAST = 1.0f;
+static int g_hasVariableFont = -1;  // Segoe UI Variable Text installed? -1 = not checked
+
+static bool InitTextRendering() {
+    if (!g_d2dFactory &&
+        FAILED(D2D1CreateFactory(D2D1_FACTORY_TYPE_SINGLE_THREADED, __uuidof(ID2D1Factory),
+                                 nullptr, reinterpret_cast<void**>(&g_d2dFactory)))) {
+        g_d2dFactory = nullptr;
+    }
+    if (!g_dwFactory &&
+        FAILED(DWriteCreateFactory(DWRITE_FACTORY_TYPE_SHARED, __uuidof(IDWriteFactory),
+                                   reinterpret_cast<IUnknown**>(&g_dwFactory)))) {
+        g_dwFactory = nullptr;
+    }
+    if (!g_textWic &&
+        FAILED(CoCreateInstance(CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
+                                IID_IWICImagingFactory, reinterpret_cast<void**>(&g_textWic)))) {
+        g_textWic = nullptr;
+    }
+    if (g_dwFactory && !g_textParams) {
+        // The system's gamma (from the display's text tuning), our rendering
+        // mode and grayscale contrast.
+        float gamma = 1.8f;
+        IDWriteRenderingParams* system = nullptr;
+        if (SUCCEEDED(g_dwFactory->CreateRenderingParams(&system)) && system) {
+            gamma = system->GetGamma();
+            system->Release();
+        }
+        IDWriteFactory1* f1 = nullptr;
+        if (SUCCEEDED(g_dwFactory->QueryInterface(__uuidof(IDWriteFactory1),
+                                                  reinterpret_cast<void**>(&f1))) && f1) {
+            IDWriteRenderingParams1* p1 = nullptr;
+            if (SUCCEEDED(f1->CreateCustomRenderingParams(
+                    gamma, TEXT_GRAY_CONTRAST, TEXT_GRAY_CONTRAST, 0.0f, DWRITE_PIXEL_GEOMETRY_FLAT,
+                    DWRITE_RENDERING_MODE_GDI_NATURAL, &p1))) {
+                g_textParams = p1;
+            }
+            f1->Release();
+        }
+        if (!g_textParams) {
+            g_dwFactory->CreateCustomRenderingParams(gamma, TEXT_GRAY_CONTRAST, 0.0f,
+                                                     DWRITE_PIXEL_GEOMETRY_FLAT,
+                                                     DWRITE_RENDERING_MODE_GDI_NATURAL,
+                                                     &g_textParams);
+        }
+    }
+    return g_d2dFactory && g_dwFactory && g_textWic;
+}
+
+static void ShutdownTextRendering() {
+    if (g_textParams) { g_textParams->Release(); g_textParams = nullptr; }
+    if (g_textWic) { g_textWic->Release(); g_textWic = nullptr; }
+    if (g_dwFactory) { g_dwFactory->Release(); g_dwFactory = nullptr; }
+    if (g_d2dFactory) { g_d2dFactory->Release(); g_d2dFactory = nullptr; }
+    g_hasVariableFont = -1;
+}
+
+// Segoe UI Variable (Text) when it is installed, otherwise the face asked for.
+static const wchar_t* ResolveUiFace(const wchar_t* face) {
+    if (wcscmp(face, L"Segoe UI") != 0) {
+        return face;
+    }
+    if (g_hasVariableFont < 0) {
+        g_hasVariableFont = 0;
+        IDWriteFontCollection* fonts = nullptr;
+        if (SUCCEEDED(g_dwFactory->GetSystemFontCollection(&fonts, FALSE)) && fonts) {
+            UINT32 index = 0;
+            BOOL exists = FALSE;
+            if (SUCCEEDED(fonts->FindFamilyName(L"Segoe UI Variable Text", &index, &exists)) &&
+                exists) {
+                g_hasVariableFont = 1;
+            }
+            fonts->Release();
+        }
+    }
+    return g_hasVariableFont == 1 ? L"Segoe UI Variable Text" : face;
+}
+
+// Renders one line of text, in one flat color, into premultiplied BGRA pixels
+// with TITLE_PAD pixels of room around it. Text wider than maxWidth (with the
+// padding) ends with an ellipsis. `semibold` for window titles, which sit on
+// a busy background. Complex scripts (Arabic, Hebrew, Hindi,
+// Thai...) are shaped and ordered by DirectWrite, which also picks a fallback
+// font for characters the face doesn't have.
 static bool RenderTextPixels(const wchar_t* text, COLORREF color, int fontPx,
                              const wchar_t* face, bool rtl,
                              std::vector<uint32_t>& out, int& outW, int& outH,
-                             int maxWidth = 0) {
-    HDC screen = GetDC(nullptr);
-    HDC mem = CreateCompatibleDC(screen);
-    HFONT font = CreateUiFont(mem, fontPx, face);
-    HGDIOBJ oldFont = SelectObject(mem, font);
-
-    // DrawText (not TextOut) so complex scripts (Arabic, Hebrew, Hindi, Thai...)
-    // are shaped and ordered correctly. The ellipsis flag must NOT be used to
-    // measure: with an empty rectangle it would make the text look like it has
-    // no room at all ("V...").
-    const UINT flags = DT_NOPREFIX | DT_SINGLELINE | (rtl ? DT_RTLREADING : 0);
-    RECT measure{ 0, 0, 0, 0 };
-    DrawTextW(mem, text, -1, &measure, flags | DT_CALCRECT);
-    const int pad = 8;
-    int w = (measure.right - measure.left) + 2 * pad;
-    const int h = (measure.bottom - measure.top) + 2 * pad;
-    if (maxWidth > 0 && w > maxWidth) {
-        w = maxWidth;  // longer text ends with an ellipsis
+                             int maxWidth = 0, bool semibold = false) {
+    if (!text || !text[0] || fontPx <= 0 || !InitTextRendering()) {
+        return false;
     }
 
-    BITMAPINFO bi{};
-    bi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-    bi.bmiHeader.biWidth = w;
-    bi.bmiHeader.biHeight = -h;
-    bi.bmiHeader.biPlanes = 1;
-    bi.bmiHeader.biBitCount = 32;
-    bi.bmiHeader.biCompression = BI_RGB;
-
-    void* bits = nullptr;
-    HBITMAP bmp = nullptr;
-    if (w > 2 * pad && h > 2 * pad) {
-        bmp = CreateDIBSection(screen, &bi, DIB_RGB_COLORS, &bits, nullptr, 0);
-    }
-
+    IDWriteTextFormat* format = nullptr;
+    IDWriteTextLayout* layout = nullptr;
+    IDWriteInlineObject* ellipsis = nullptr;
+    IWICBitmap* bitmap = nullptr;
+    ID2D1RenderTarget* target = nullptr;
+    ID2D1SolidColorBrush* brush = nullptr;
     bool ok = false;
-    if (bmp && bits) {
-        const size_t count = static_cast<size_t>(w) * h;
-        SetBkMode(mem, TRANSPARENT);
-        SetTextColor(mem, RGB(255, 255, 255));
 
-        HGDIOBJ oldBmp = SelectObject(mem, bmp);
-        memset(bits, 0x00, count * 4);
-        RECT area{ pad, pad, w - pad, h - pad };
-        DrawTextW(mem, text, -1, &area, flags | DT_END_ELLIPSIS);  // only cuts what doesn't fit
-        GdiFlush();
-        SelectObject(mem, oldBmp);
+    do {
+        if (FAILED(g_dwFactory->CreateTextFormat(
+                ResolveUiFace(face), nullptr,
+                semibold ? DWRITE_FONT_WEIGHT_SEMI_BOLD : DWRITE_FONT_WEIGHT_NORMAL,
+                DWRITE_FONT_STYLE_NORMAL,
+                DWRITE_FONT_STRETCH_NORMAL, static_cast<float>(fontPx), L"", &format))) {
+            break;
+        }
+        format->SetWordWrapping(DWRITE_WORD_WRAPPING_NO_WRAP);
+        format->SetReadingDirection(rtl ? DWRITE_READING_DIRECTION_RIGHT_TO_LEFT
+                                        : DWRITE_READING_DIRECTION_LEFT_TO_RIGHT);
+        // Measured the way it is drawn (GDI-natural widths, one pixel per unit).
+        if (FAILED(g_dwFactory->CreateGdiCompatibleTextLayout(
+                text, static_cast<UINT32>(wcslen(text)), format, 100000.0f, 10000.0f, 1.0f,
+                nullptr, TRUE, &layout))) {
+            break;
+        }
 
-        const uint32_t* src = static_cast<const uint32_t*>(bits);
-        const float cr = static_cast<float>(GetRValue(color));
-        const float cg = static_cast<float>(GetGValue(color));
-        const float cb = static_cast<float>(GetBValue(color));
-        out.resize(count);
-        for (size_t i = 0; i < count; i++) {
-            float a = static_cast<float>(src[i] & 0xFF) / 255.0f;  // R = G = B
-            if (TEXT_ALPHA_GAMMA != 1.0f && a > 0.0f) {
-                a = std::pow(a, TEXT_ALPHA_GAMMA);
+        DWRITE_TEXT_METRICS m{};
+        if (FAILED(layout->GetMetrics(&m))) {
+            break;
+        }
+        const int pad = TITLE_PAD;
+        const int textW = static_cast<int>(std::ceil(m.widthIncludingTrailingWhitespace));
+        int w = textW + 2 * pad;
+        const int h = static_cast<int>(std::ceil(m.height)) + 2 * pad;
+        if (maxWidth > 0 && w > maxWidth) {
+            w = maxWidth;  // longer text ends with an ellipsis
+            DWRITE_TRIMMING trim{ DWRITE_TRIMMING_GRANULARITY_CHARACTER, 0, 0 };
+            if (SUCCEEDED(g_dwFactory->CreateEllipsisTrimmingSign(format, &ellipsis))) {
+                layout->SetTrimming(&trim, ellipsis);
             }
-            const uint32_t ua = static_cast<uint32_t>(a * 255.0f + 0.5f);
-            out[i] = (ua << 24) |
-                     (static_cast<uint32_t>(cr * a + 0.5f) << 16) |
-                     (static_cast<uint32_t>(cg * a + 0.5f) << 8) |
-                     static_cast<uint32_t>(cb * a + 0.5f);
+        }
+        if (w <= 2 * pad || h <= 2 * pad) {
+            break;
+        }
+        layout->SetMaxWidth(static_cast<float>(w - 2 * pad));
+
+        if (FAILED(g_textWic->CreateBitmap(static_cast<UINT>(w), static_cast<UINT>(h),
+                                           GUID_WICPixelFormat32bppPBGRA, WICBitmapCacheOnLoad,
+                                           &bitmap))) {
+            break;
+        }
+        const D2D1_RENDER_TARGET_PROPERTIES props = D2D1::RenderTargetProperties(
+            D2D1_RENDER_TARGET_TYPE_SOFTWARE,
+            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM, D2D1_ALPHA_MODE_PREMULTIPLIED),
+            96.0f, 96.0f);  // 96 DPI: one DirectWrite unit = one pixel
+        if (FAILED(g_d2dFactory->CreateWicBitmapRenderTarget(bitmap, &props, &target))) {
+            break;
+        }
+        target->SetTextAntialiasMode(D2D1_TEXT_ANTIALIAS_MODE_GRAYSCALE);
+        if (g_textParams) {
+            target->SetTextRenderingParams(g_textParams);
+        }
+        if (FAILED(target->CreateSolidColorBrush(
+                D2D1::ColorF(GetRValue(color) / 255.0f, GetGValue(color) / 255.0f,
+                             GetBValue(color) / 255.0f, 1.0f),
+                &brush))) {
+            break;
+        }
+
+        target->BeginDraw();
+        target->Clear(D2D1::ColorF(0.0f, 0.0f, 0.0f, 0.0f));
+        target->DrawTextLayout(D2D1::Point2F(static_cast<float>(pad), static_cast<float>(pad)),
+                               layout, brush);
+        if (FAILED(target->EndDraw())) {
+            break;
+        }
+
+        out.resize(static_cast<size_t>(w) * h);
+        WICRect all{ 0, 0, w, h };
+        if (FAILED(bitmap->CopyPixels(&all, static_cast<UINT>(w) * 4,
+                                      static_cast<UINT>(out.size() * 4),
+                                      reinterpret_cast<BYTE*>(out.data())))) {
+            break;
         }
         outW = w;
         outH = h;
         ok = true;
-    }
+    } while (false);
 
-    if (bmp) DeleteObject(bmp);
-    SelectObject(mem, oldFont);
-    DeleteObject(font);
-    DeleteDC(mem);
-    ReleaseDC(nullptr, screen);
+    if (brush) brush->Release();
+    if (target) target->Release();
+    if (bitmap) bitmap->Release();
+    if (ellipsis) ellipsis->Release();
+    if (layout) layout->Release();
+    if (format) format->Release();
     return ok;
 }
 
@@ -1752,6 +2048,66 @@ static bool GetAumidForWindow(HWND hwnd, std::wstring& out) {
     return true;
 }
 
+// The AppUserModelID kept in the window's own property store. A packaged app's
+// frame (ApplicationFrameWindow) can have it even when there is no CoreWindow child
+// to ask, which is the case while it is minimized or suspended.
+static bool GetWindowStoreAumid(HWND hwnd, std::wstring& out) {
+    typedef HRESULT(WINAPI * PFN_SHGetPropertyStoreForWindow)(HWND, REFIID, void**);
+    static PFN_SHGetPropertyStoreForWindow pGetStore =
+        reinterpret_cast<PFN_SHGetPropertyStoreForWindow>(
+            GetProcAddress(GetModuleHandleW(L"shell32.dll"), "SHGetPropertyStoreForWindow"));
+    if (!pGetStore) {
+        return false;
+    }
+    IPropertyStore* store = nullptr;
+    if (FAILED(pGetStore(hwnd, __uuidof(IPropertyStore), reinterpret_cast<void**>(&store))) ||
+        !store) {
+        return false;
+    }
+    // PKEY_AppUserModel_ID, spelled out so no extra header or library is needed.
+    static const PROPERTYKEY kAppUserModelId = {
+        { 0x9F4C2855, 0x9F79, 0x4B39, { 0xA8, 0xD0, 0xE1, 0xD4, 0x2D, 0xE1, 0xD5, 0xF3 } }, 5 };
+    PROPVARIANT v;
+    PropVariantInit(&v);
+    bool ok = false;
+    if (SUCCEEDED(store->GetValue(kAppUserModelId, &v)) && v.vt == VT_LPWSTR && v.pwszVal &&
+        v.pwszVal[0]) {
+        out = v.pwszVal;
+        ok = true;
+    }
+    PropVariantClear(&v);
+    store->Release();
+    return ok;
+}
+
+// What "the same app" means for App Exposé: the AppUserModelID of a packaged app
+// (all its frames are hosted by ApplicationFrameHost), otherwise the executable.
+static bool GetAppKey(HWND hwnd, std::wstring& key) {
+    bool haveAumid = GetAumidForWindow(hwnd, key);
+    wchar_t cls[64] = {};
+    GetClassNameW(hwnd, cls, 64);
+    if (!haveAumid && !wcscmp(cls, L"ApplicationFrameWindow")) {
+        // No CoreWindow to ask (a suspended or minimized frame): the frame's own property
+        // store may still know. Without it the executable would be ApplicationFrameHost,
+        // shared by every packaged app, so there's no key at all.
+        haveAumid = GetWindowStoreAumid(hwnd, key);
+        if (!haveAumid) {
+            return false;
+        }
+    }
+    if (haveAumid) {
+        CharLowerW(&key[0]);  // the two sources may not agree on case
+        return true;
+    }
+    wchar_t path[MAX_PATH * 2] = {};
+    if (!GetWindowExePath(hwnd, path, static_cast<DWORD>(ARRAYSIZE(path)))) {
+        return false;
+    }
+    CharLowerW(path);
+    key = path;
+    return true;
+}
+
 // Icon of a packaged app from the shell, as premultiplied BGRA pixels.
 static bool RenderShellAumidIcon(const std::wstring& aumid, int size,
                                  std::vector<uint32_t>& out) {
@@ -1764,8 +2120,8 @@ static bool RenderShellAumidIcon(const std::wstring& aumid, int size,
         return false;
     }
 
-    const HRESULT initHr = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
-
+    // Both callers already have a COM apartment (the touchpad STA thread and
+    // the MTA pre-warm thread).
     bool ok = false;
     IShellItemImageFactory* factory = nullptr;
     const std::wstring path = L"shell:AppsFolder\\" + aumid;
@@ -1835,10 +2191,6 @@ static bool RenderShellAumidIcon(const std::wstring& aumid, int size,
         }
         factory->Release();
     }
-
-    if (SUCCEEDED(initHr)) {
-        CoUninitialize();
-    }
     return ok;
 }
 
@@ -1855,8 +2207,14 @@ struct SrwGuard {
     ~SrwGuard() { ReleaseSRWLockExclusive(lock); }
 };
 
-static bool LookupIconPixels(const std::wstring& key, IconPixels& out) {
-    const std::wstring sk = key + L"@" + std::to_wstring(ICON_SIZE);
+// The icon size is read once by the caller and passed down: the UI thread
+// changes ICON_SIZE (UpdateUiScale) while the pre-warm thread may be running.
+static std::wstring IconCacheKey(const std::wstring& key, int size) {
+    return key + L"@" + std::to_wstring(size);
+}
+
+static bool LookupIconPixels(const std::wstring& key, int size, IconPixels& out) {
+    const std::wstring sk = IconCacheKey(key, size);
     SrwGuard g(&g_iconPixelsLock);
     auto it = g_iconPixels.find(sk);
     if (it == g_iconPixels.end()) {
@@ -1866,20 +2224,20 @@ static bool LookupIconPixels(const std::wstring& key, IconPixels& out) {
     return true;
 }
 
-static void StoreIconPixels(const std::wstring& key, const IconPixels& px) {
-    const std::wstring sk = key + L"@" + std::to_wstring(ICON_SIZE);
+static void StoreIconPixels(const std::wstring& key, int size, const IconPixels& px) {
+    const std::wstring sk = IconCacheKey(key, size);
     SrwGuard g(&g_iconPixelsLock);
     g_iconPixels[sk] = px;
 }
 
 // Returns the app's icon (null if none) and the cache key it was stored under.
-static IconPixels GetIconPixels(HWND hwnd, std::wstring& keyOut) {
+static IconPixels GetIconPixels(HWND hwnd, int size, std::wstring& keyOut) {
     // 1. Packaged / UWP apps: the icon the shell shows for them.
     std::wstring aumid;
     if (GetAumidForWindow(hwnd, aumid)) {
         const std::wstring key = L"aumid:" + aumid;
         IconPixels cached;
-        if (LookupIconPixels(key, cached)) {
+        if (LookupIconPixels(key, size, cached)) {
             if (cached) {
                 keyOut = key;
                 return cached;
@@ -1887,13 +2245,13 @@ static IconPixels GetIconPixels(HWND hwnd, std::wstring& keyOut) {
             // cached failure: fall through to the other sources
         } else {
             auto px = std::make_shared<std::vector<uint32_t>>();
-            if (RenderShellAumidIcon(aumid, ICON_SIZE, *px)) {
-                StoreIconPixels(key, px);
+            if (RenderShellAumidIcon(aumid, size, *px)) {
+                StoreIconPixels(key, size, px);
                 keyOut = key;
                 return px;
             }
             Wh_Log(L"  icon: shell icon failed for %s", aumid.c_str());
-            StoreIconPixels(key, nullptr);
+            StoreIconPixels(key, size, nullptr);
         }
     }
 
@@ -1915,7 +2273,7 @@ static IconPixels GetIconPixels(HWND hwnd, std::wstring& keyOut) {
     keyOut = key;
 
     IconPixels cached;
-    if (LookupIconPixels(key, cached)) {
+    if (LookupIconPixels(key, size, cached)) {
         return cached;
     }
 
@@ -1932,7 +2290,7 @@ static IconPixels GetIconPixels(HWND hwnd, std::wstring& keyOut) {
     bool owned = false;
     if (haveExe && pExtract) {
         HICON h = nullptr;
-        if (pExtract(path, 0, ICON_SIZE, ICON_SIZE, &h, nullptr, 1, 0) == 1 && h) {
+        if (pExtract(path, 0, size, size, &h, nullptr, 1, 0) == 1 && h) {
             icon = h;
             owned = true;
         }
@@ -1942,7 +2300,7 @@ static IconPixels GetIconPixels(HWND hwnd, std::wstring& keyOut) {
     }
 
     auto px = std::make_shared<std::vector<uint32_t>>();
-    const bool ok = icon && RenderIconPixels(icon, ICON_SIZE, *px);
+    const bool ok = icon && RenderIconPixels(icon, size, *px);
     if (owned) {
         DestroyIcon(icon);
     }
@@ -1950,27 +2308,57 @@ static IconPixels GetIconPixels(HWND hwnd, std::wstring& keyOut) {
         Wh_Log(L"  icon: could not render the icon for %s", key.c_str());
         px = nullptr;
     }
-    StoreIconPixels(key, px);
+    StoreIconPixels(key, size, px);
     return px;
 }
 
 // The DirectComposition surface for an app's icon (UI thread only).
 static IDCompositionSurface* GetIconSurface(HWND hwnd) {
+    const int size = ICON_SIZE;
     std::wstring key;
-    IconPixels px = GetIconPixels(hwnd, key);
-    if (!px) {
+    IconPixels px = GetIconPixels(hwnd, size, key);
+    if (!px || px->size() != static_cast<size_t>(size) * static_cast<size_t>(size)) {
         return nullptr;
     }
 
-    const std::wstring sk = key + L"@" + std::to_wstring(ICON_SIZE);
+    const std::wstring sk = IconCacheKey(key, size);
     auto it = g_iconCache.find(sk);
     if (it != g_iconCache.end()) {
         return it->second;
     }
 
-    IDCompositionSurface* surf = CreatePixelSurface(*px, ICON_SIZE, ICON_SIZE);
+    IDCompositionSurface* surf = CreatePixelSurface(*px, size, size);
     g_iconCache[sk] = surf;  // cache failures too
     return surf;
+}
+
+// Icons keyed by window handle (no exe path / AUMID) are dropped once their
+// window is gone, so both caches don't keep growing.
+static bool IsDeadWindowKey(const std::wstring& sk) {
+    if (sk.compare(0, 5, L"hwnd:") != 0) {
+        return false;
+    }
+    const auto h = reinterpret_cast<HWND>(
+        static_cast<uintptr_t>(std::wcstoull(sk.c_str() + 5, nullptr, 10)));
+    return !IsWindow(h);
+}
+
+// UI thread only (it owns g_iconCache).
+static void PurgeDeadWindowIcons() {
+    for (auto it = g_iconCache.begin(); it != g_iconCache.end();) {
+        if (IsDeadWindowKey(it->first)) {
+            if (it->second) {
+                it->second->Release();
+            }
+            it = g_iconCache.erase(it);
+        } else {
+            ++it;
+        }
+    }
+    SrwGuard g(&g_iconPixelsLock);
+    for (auto it = g_iconPixels.begin(); it != g_iconPixels.end();) {
+        it = IsDeadWindowKey(it->first) ? g_iconPixels.erase(it) : std::next(it);
+    }
 }
 
 // ---- Start-up pre-warm --------------------------------------------------------
@@ -1978,7 +2366,7 @@ static IDCompositionSurface* GetIconSurface(HWND hwnd) {
 static HANDLE g_prewarmThread = nullptr;
 static volatile LONG g_prewarmStop = 0;
 
-static BOOL CALLBACK PrewarmEnumProc(HWND h, LPARAM) {
+static BOOL CALLBACK PrewarmEnumProc(HWND h, LPARAM lp) {
     if (g_prewarmStop) {
         return FALSE;
     }
@@ -1989,7 +2377,7 @@ static BOOL CALLBACK PrewarmEnumProc(HWND h, LPARAM) {
     if ((ex & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)) && !(ex & WS_EX_APPWINDOW)) {
         return TRUE;
     }
-    if (GetWindowTextLengthW(h) == 0) {
+    if (!HasWindowTitle(h)) {
         return TRUE;
     }
     HWND owner = GetWindow(h, GW_OWNER);
@@ -2003,14 +2391,14 @@ static BOOL CALLBACK PrewarmEnumProc(HWND h, LPARAM) {
     }
 
     std::wstring key;
-    GetIconPixels(h, key);
+    GetIconPixels(h, static_cast<int>(lp), key);
     return TRUE;
 }
 
-static DWORD WINAPI PrewarmThreadProc(void*) {
+static DWORD WINAPI PrewarmThreadProc(void* param) {
     const HRESULT hr = CoInitializeEx(nullptr, COINIT_MULTITHREADED);
     SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_BELOW_NORMAL);
-    EnumWindows(PrewarmEnumProc, 0);
+    EnumWindows(PrewarmEnumProc, reinterpret_cast<LPARAM>(param));  // param = icon size
     if (SUCCEEDED(hr)) {
         CoUninitialize();
     }
@@ -2023,15 +2411,19 @@ static void StartPrewarm() {
         return;
     }
     g_prewarmStop = 0;
-    g_prewarmThread = CreateThread(nullptr, 0, PrewarmThreadProc, nullptr, 0, nullptr);
+    g_prewarmThread = CreateThread(nullptr, 0, PrewarmThreadProc,
+                                   reinterpret_cast<void*>(static_cast<INT_PTR>(ICON_SIZE)), 0,
+                                   nullptr);
 }
 
 static void StopPrewarm() {
     if (!g_prewarmThread) {
         return;
     }
+    // It checks the stop flag between windows, so this wait is short; it must
+    // end before the mod is unloaded, so there is no timeout.
     InterlockedExchange(&g_prewarmStop, 1);
-    WaitForSingleObject(g_prewarmThread, 3000);
+    WaitForSingleObject(g_prewarmThread, INFINITE);
     CloseHandle(g_prewarmThread);
     g_prewarmThread = nullptr;
 }
@@ -2054,7 +2446,7 @@ static D2D_MATRIX_3X2_F MakeMatrix(float m11, float m12, float m21, float m22,
 // is wider than the window's tile.
 static void AddTitleChild(IDCompositionVisual2* parent, const Tile& t) {
     wchar_t title[256] = {};
-    if (GetWindowTextW(t.hwnd, title, 255) <= 0) {
+    if (InternalGetWindowText(t.hwnd, title, 255) <= 0) {
         return;
     }
 
@@ -2064,7 +2456,7 @@ static void AddTitleChild(IDCompositionVisual2* parent, const Tile& t) {
 
     std::vector<uint32_t> px;
     int w = 0, h = 0;
-    if (!RenderTextPixels(title, color, TITLE_FONT_PX, L"Segoe UI", false, px, w, h, maxW)) {
+    if (!RenderTextPixels(title, color, TITLE_FONT_PX, L"Segoe UI", false, px, w, h, maxW, true)) {
         return;
     }
     IDCompositionSurface* surf = CreatePixelSurface(px, w, h);
@@ -2196,7 +2588,7 @@ static void PlaceDCompTile(Tile& t, const RECT& r) {
         static_cast<float>(r.right - r.left) / t.srcW, 0.0f,
         0.0f, static_cast<float>(r.bottom - r.top) / t.srcH,
         static_cast<float>(r.left), static_cast<float>(r.top));
-    static_cast<IDCompositionVisual2*>(t.dcVisual)->SetTransform(m);
+    t.dcVisual->SetTransform(m);
 }
 
 // Dialogs ride along with their owner's tile: same scale, same relative spot.
@@ -2232,12 +2624,10 @@ static void PlaceDCompIcon(Tile& t, const RECT& r) {
                     static_cast<float>(ICON_SIZE) * 0.5f;
     const float y = static_cast<float>(r.bottom + ICON_GAP);
     const D2D_MATRIX_3X2_F m = MakeMatrix(1.0f, 0.0f, 0.0f, 1.0f, x, y);
-    static_cast<IDCompositionVisual2*>(t.iconVisual)->SetTransform(m);
+    t.iconVisual->SetTransform(m);
 }
 
-#endif  // USE_DCOMP_THUMBNAILS
 
-#if USE_DCOMP_THUMBNAILS
 
 // ---------------------------------------------------------------------------
 // Virtual desktops bar
@@ -2319,6 +2709,129 @@ static std::wstring ReadDesktopName(const GUID& id) {
     return L"";
 }
 
+static std::wstring GetWallpaperPath();
+
+// The wallpaper of a desktop. Windows 11 can give each virtual desktop its own
+// one (kept next to its name in the registry); otherwise, and for the current
+// desktop (slideshows, Spotlight), it is the one Windows reports right now.
+static std::wstring DesktopWallpaperPath(const GUID& id, bool current) {
+    if (!current) {
+        wchar_t guid[64] = {};
+        if (StringFromGUID2(id, guid, 64)) {
+            std::wstring key =
+                L"Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\VirtualDesktops\\Desktops\\";
+            key += guid;
+            wchar_t path[MAX_PATH] = {};
+            DWORD size = sizeof(path);
+            if (RegGetValueW(HKEY_CURRENT_USER, key.c_str(), L"Wallpaper", RRF_RT_REG_SZ, nullptr,
+                             path, &size) == ERROR_SUCCESS &&
+                path[0] && GetFileAttributesW(path) != INVALID_FILE_ATTRIBUTES) {
+                return path;
+            }
+        }
+    }
+    return GetWallpaperPath();
+}
+
+// Cache key of an image at a given size: changes when the file is replaced.
+static std::wstring ImageCacheKey(const std::wstring& path, int w, int h) {
+    WIN32_FILE_ATTRIBUTE_DATA fa{};
+    GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &fa);
+    wchar_t tail[96];
+    swprintf(tail, 96, L"|%lu|%lu|%d|%d",
+             static_cast<unsigned long>(fa.ftLastWriteTime.dwHighDateTime),
+             static_cast<unsigned long>(fa.ftLastWriteTime.dwLowDateTime), w, h);
+    return path + tail;
+}
+
+// Decodes an image file, crops its center like Windows' "Fill" fit mode to the
+// shape of w x h and scales it to exactly w x h: 32-bit BGRA, top-down, w * 4
+// bytes per row. Empty for an image without pixels; throws on WIC errors.
+static std::vector<uint8_t> DecodeImageFill(IWICImagingFactory* factory,
+                                            const std::wstring& path, UINT w, UINT h) {
+    winrt::com_ptr<IWICBitmapDecoder> decoder;
+    winrt::check_hresult(factory->CreateDecoderFromFilename(
+        path.c_str(), nullptr, GENERIC_READ, WICDecodeMetadataCacheOnDemand, decoder.put()));
+    winrt::com_ptr<IWICBitmapFrameDecode> frame;
+    winrt::check_hresult(decoder->GetFrame(0, frame.put()));
+
+    UINT sw = 0, sh = 0;
+    winrt::check_hresult(frame->GetSize(&sw, &sh));
+    if (!sw || !sh || !w || !h) {
+        return {};
+    }
+
+    UINT cw = sw, ch = sh;
+    const double srcAspect = static_cast<double>(sw) / sh;
+    const double dstAspect = static_cast<double>(w) / h;
+    if (srcAspect > dstAspect) {
+        cw = static_cast<UINT>(sh * dstAspect + 0.5);
+    } else {
+        ch = static_cast<UINT>(sw / dstAspect + 0.5);
+    }
+    cw = cw ? cw : 1;
+    ch = ch ? ch : 1;
+    WICRect clip{ static_cast<INT>((sw - cw) / 2), static_cast<INT>((sh - ch) / 2),
+                  static_cast<INT>(cw), static_cast<INT>(ch) };
+
+    winrt::com_ptr<IWICBitmapClipper> clipper;
+    winrt::check_hresult(factory->CreateBitmapClipper(clipper.put()));
+    winrt::check_hresult(clipper->Initialize(frame.get(), &clip));
+    winrt::com_ptr<IWICBitmapScaler> scaler;
+    winrt::check_hresult(factory->CreateBitmapScaler(scaler.put()));
+    winrt::check_hresult(scaler->Initialize(clipper.get(), w, h, WICBitmapInterpolationModeFant));
+    winrt::com_ptr<IWICFormatConverter> conv;
+    winrt::check_hresult(factory->CreateFormatConverter(conv.put()));
+    winrt::check_hresult(conv->Initialize(scaler.get(), GUID_WICPixelFormat32bppBGRA,
+                                          WICBitmapDitherTypeNone, nullptr, 0.0,
+                                          WICBitmapPaletteTypeCustom));
+
+    std::vector<uint8_t> px(static_cast<size_t>(w) * h * 4);
+    winrt::check_hresult(conv->CopyPixels(nullptr, w * 4, static_cast<UINT>(px.size()), px.data()));
+    return px;
+}
+
+// Wallpapers shrunk to the size of a card's little screen, as opaque BGRA.
+// Decoding a full-size wallpaper is slow, so they are kept between gestures.
+static std::map<std::wstring, std::vector<uint32_t>> g_wallThumbs;
+
+static const std::vector<uint32_t>* GetWallpaperThumb(const std::wstring& path, int w, int h) {
+    if (path.empty() || w <= 0 || h <= 0) {
+        return nullptr;
+    }
+    const std::wstring key = ImageCacheKey(path, w, h);
+
+    auto it = g_wallThumbs.find(key);
+    if (it != g_wallThumbs.end()) {
+        return it->second.empty() ? nullptr : &it->second;  // empty = known failure
+    }
+    if (g_wallThumbs.size() > 16) {
+        g_wallThumbs.clear();  // wallpapers or monitors changed a lot: start over
+    }
+
+    std::vector<uint32_t> px;
+    try {
+        winrt::com_ptr<IWICImagingFactory> factory;
+        winrt::check_hresult(CoCreateInstance(CLSID_WICImagingFactory, nullptr,
+                                              CLSCTX_INPROC_SERVER, IID_IWICImagingFactory,
+                                              factory.put_void()));
+        const std::vector<uint8_t> bytes =
+            DecodeImageFill(factory.get(), path, static_cast<UINT>(w), static_cast<UINT>(h));
+        px.resize(bytes.size() / 4);
+        std::memcpy(px.data(), bytes.data(), px.size() * 4);
+        for (uint32_t& p : px) {
+            p |= 0xFF000000u;  // a wallpaper is opaque
+        }
+    } catch (...) {
+        px.clear();
+        Wh_Log(L"Desktop bar: could not load the wallpaper %s", path.c_str());
+    }
+
+    auto& slot = g_wallThumbs[key];
+    slot = std::move(px);
+    return slot.empty() ? nullptr : &slot;
+}
+
 struct DesktopWin {
     HWND hwnd;
     RECT rect;
@@ -2343,7 +2856,7 @@ static BOOL CALLBACK DesktopWinProc(HWND hwnd, LPARAM lp) {
     if ((ex & (WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE)) && !(ex & WS_EX_APPWINDOW)) {
         return TRUE;
     }
-    if (IsInvisibleLayered(hwnd, ex) || GetWindowTextLengthW(hwnd) == 0) {
+    if (IsInvisibleLayered(hwnd, ex) || !HasWindowTitle(hwnd)) {
         return TRUE;
     }
     HWND owner = GetWindow(hwnd, GW_OWNER);
@@ -2369,7 +2882,7 @@ static BOOL CALLBACK DesktopWinProc(HWND hwnd, LPARAM lp) {
 static void PrepareDesktopCards() {
     g_cards.clear();
     g_barBand = 0;
-    if (!DESKTOP_BAR || !g_dcOk || !g_dcBarLayer || !g_barFx) {
+    if (!DESKTOP_BAR || g_exposeMode || !g_dcOk || !g_dcBarLayer || !g_barFx) {
         return;
     }
 
@@ -2399,6 +2912,7 @@ static void PrepareDesktopCards() {
         c.id = ids[i];
         c.name = ReadDesktopName(ids[i]);
         if (c.name.empty()) {
+            c.autoName = true;
             c.name = std::wstring(DesktopWord()) + L" " + std::to_wstring(i + 1);
         }
         c.current = static_cast<int>(i) == curIdx;
@@ -2456,6 +2970,7 @@ static void PrepareDesktopCards() {
     }
     for (auto& c : g_cards) {
         c.x = x;
+        c.drawX = static_cast<float>(x);
         x += c.w + BAR_GAP;
     }
 
@@ -2596,8 +3111,29 @@ static void RenderDesktopCard(const DesktopCard& c, std::vector<uint32_t>& px) {
     const float wy0 = static_cast<float>(BAR_WELL_Y);
     const float wx1 = wx0 + static_cast<float>(BAR_WELL_W);
     const float wy1 = wy0 + static_cast<float>(BAR_WELL_H);
-    FillRoundRect(px, w, h, wx0, wy0, wx1, wy1, 6.0f * k, 1.0f - tone, 1.0f - tone, 1.0f - tone,
-                  dark ? 0.30f : 0.55f);
+    const float wellRad = 6.0f * k;
+    const std::vector<uint32_t>* wall = GetWallpaperThumb(
+        DesktopWallpaperPath(c.id, c.current), BAR_WELL_W, BAR_WELL_H);
+    if (wall) {
+        // The desktop's wallpaper, with the screen's rounded corners.
+        for (int y = 0; y < BAR_WELL_H; y++) {
+            const int ty = BAR_WELL_Y + y;
+            for (int x = 0; x < BAR_WELL_W; x++) {
+                const int tx = static_cast<int>(std::floor(wx0)) + x;
+                const float cov = RoundRectCoverage(tx + 0.5f, ty + 0.5f, wx0, wy0, wx1, wy1, wellRad);
+                if (cov <= 0.0f) {
+                    continue;
+                }
+                const uint32_t s = (*wall)[static_cast<size_t>(y) * BAR_WELL_W + x];
+                PutOver(px, w, h, tx, ty, static_cast<float>((s >> 16) & 0xFF) / 255.0f,
+                        static_cast<float>((s >> 8) & 0xFF) / 255.0f,
+                        static_cast<float>(s & 0xFF) / 255.0f, cov);
+            }
+        }
+    } else {
+        FillRoundRect(px, w, h, wx0, wy0, wx1, wy1, wellRad, 1.0f - tone, 1.0f - tone, 1.0f - tone,
+                      dark ? 0.30f : 0.55f);
+    }
 
     const float monW = static_cast<float>(g_workRect.right - g_workRect.left);
     const float monH = static_cast<float>(g_workRect.bottom - g_workRect.top);
@@ -2621,7 +3157,7 @@ static void RenderDesktopCard(const DesktopCard& c, std::vector<uint32_t>& px) {
     std::vector<uint32_t> text;
     int tw = 0, th = 0;
     const COLORREF color = dark ? RGB(238, 238, 238) : RGB(28, 28, 28);
-    const int fontPx = std::max(9, static_cast<int>(std::lround(11.0f * k)));
+    const int fontPx = static_cast<int>(std::max(std::lround(9.0f * g_dpiScale), std::lround(11.0f * k)));
     if (RenderTextPixels(c.name.c_str(), color, fontPx, L"Segoe UI", false, text, tw, th, w - 4)) {
         BlendPremul(px, w, h, text, tw, th, (w - tw) / 2,
                     static_cast<int>(std::lround(wy1 + 2.0f * k)) - TITLE_PAD);
@@ -2660,9 +3196,9 @@ static void PlaceBarCard(const DesktopCard& c) {
     }
     const float s = 1.0f + 0.06f * c.hover;
     const float cy = static_cast<float>(BAR_H - BAR_CARD_H) * 0.5f;
-    static_cast<IDCompositionVisual2*>(c.visual)->SetTransform(MakeMatrix(
+    c.visual->SetTransform(MakeMatrix(
         s, 0.0f, 0.0f, s,
-        static_cast<float>(c.x) + (1.0f - s) * static_cast<float>(c.w) * 0.5f,
+        c.drawX + (1.0f - s) * static_cast<float>(c.w) * 0.5f,
         cy + (1.0f - s) * static_cast<float>(BAR_CARD_H) * 0.5f - 4.0f * c.hover));
 }
 
@@ -2747,8 +3283,8 @@ static bool AddCardThumb(DesktopCard& c, const CardWin& w) {
                                wx0 + static_cast<float>(w.rect.left) * sx,
                                static_cast<float>(BAR_WELL_Y) + static_cast<float>(w.rect.top) * sy));
 
-    auto* host = static_cast<IDCompositionVisual2*>(c.thumbHost);
-    if (FAILED(host->AddVisual(v, TRUE, static_cast<IDCompositionVisual2*>(c.thumbTop)))) {
+    auto* host = c.thumbHost;
+    if (FAILED(host->AddVisual(v, TRUE, c.thumbTop))) {
         v->Release();
         if (th) {
             DwmUnregisterThumbnail(th);
@@ -2877,7 +3413,7 @@ static void CreateDesktopBarVisuals() {
                     xv->SetTransform(MakeMatrix(1.0f, 0.0f, 0.0f, 1.0f,
                                                 static_cast<float>(c.w - BAR_X_INSET - xs),
                                                 static_cast<float>(BAR_X_INSET)));
-                    if (SUCCEEDED(v->AddVisual(xv, TRUE, static_cast<IDCompositionVisual2*>(c.thumbHost)))) {
+                    if (SUCCEEDED(v->AddVisual(xv, TRUE, c.thumbHost))) {
                         c.xVisual = xv;
                         c.xFx = fx;
                     } else {
@@ -2918,31 +3454,31 @@ static void ClearDesktopBar() {
         c.thumbs.clear();
 
         if (c.thumbHost) {
-            static_cast<IDCompositionVisual2*>(c.thumbHost)->RemoveAllVisuals();
+            c.thumbHost->RemoveAllVisuals();
         }
-        for (void* tv : c.thumbVisuals) {
-            static_cast<IDCompositionVisual2*>(tv)->Release();
+        for (IDCompositionVisual2* tv : c.thumbVisuals) {
+            tv->Release();
         }
         c.thumbVisuals.clear();
         c.thumbTop = nullptr;
 
         if (c.visual) {
-            static_cast<IDCompositionVisual2*>(c.visual)->RemoveAllVisuals();
+            c.visual->RemoveAllVisuals();
         }
         if (c.thumbHost) {
-            static_cast<IDCompositionVisual2*>(c.thumbHost)->Release();
+            c.thumbHost->Release();
             c.thumbHost = nullptr;
         }
         if (c.xVisual) {
-            static_cast<IDCompositionVisual2*>(c.xVisual)->Release();
+            c.xVisual->Release();
             c.xVisual = nullptr;
         }
         if (c.xFx) {
-            static_cast<IDCompositionEffectGroup*>(c.xFx)->Release();
+            c.xFx->Release();
             c.xFx = nullptr;
         }
         if (c.visual) {
-            static_cast<IDCompositionVisual2*>(c.visual)->Release();
+            c.visual->Release();
             c.visual = nullptr;
         }
     }
@@ -2965,6 +3501,12 @@ static void ClearDesktopBar() {
     }
     g_barThumbQueue.clear();
     g_cards.clear();
+    g_cardPress = -1;  // before ReleaseCapture, so WM_CAPTURECHANGED does nothing
+    g_cardDrag = false;
+    g_cardSlots.clear();
+    if (g_overlay && GetCapture() == g_overlay) {
+        ReleaseCapture();
+    }
     g_barBuilt = false;
     g_barOp = -1.0f;
     g_barHover = -1;
@@ -3020,7 +3562,7 @@ static void SetBarCloseHover(int idx) {
     auto show = [](int i, bool hot) {
         if (i >= 0 && i < static_cast<int>(g_cards.size()) &&
             g_cards[static_cast<size_t>(i)].xVisual && g_xSurf[hot ? 1 : 0]) {
-            static_cast<IDCompositionVisual2*>(g_cards[static_cast<size_t>(i)].xVisual)
+            g_cards[static_cast<size_t>(i)].xVisual
                 ->SetContent(g_xSurf[hot ? 1 : 0]);
         }
     };
@@ -3041,14 +3583,16 @@ static void SetBarHover(int idx) {
             changed = true;
         }
     }
-    if (changed && g_overlay) {
-        SetTimer(g_overlay, BAR_TIMER_ID, 15, nullptr);
+    if (changed) {
+        StartBarTimer();
     }
 }
 
 static void StepBarHover() {
     bool moving = false;
-    for (auto& c : g_cards) {
+    for (size_t i = 0; i < g_cards.size(); i++) {
+        DesktopCard& c = g_cards[i];
+        const bool dragged = g_cardDrag && static_cast<int>(i) == g_cardPress;
         const float d = c.hoverTarget - c.hover;
         if (std::fabs(d) < 0.01f || g_reduceMotion) {
             c.hover = c.hoverTarget;
@@ -3056,22 +3600,30 @@ static void StepBarHover() {
             c.hover += d * 0.32f;
             moving = true;
         }
+        // Slides into its slot after a reorder (the dragged card follows the mouse).
+        if (!dragged) {
+            const float dx = static_cast<float>(c.x) - c.drawX;
+            if (std::fabs(dx) < 0.5f || g_reduceMotion) {
+                c.drawX = static_cast<float>(c.x);
+            } else {
+                c.drawX += dx * 0.3f;
+                moving = true;
+            }
+        }
         PlaceBarCard(c);
         if (c.xFx) {
-            static_cast<IDCompositionEffectGroup*>(c.xFx)->SetOpacity(c.hover);  // the X shows on hover
+            c.xFx->SetOpacity(dragged ? 0.0f : c.hover);  // the X shows on hover
         }
     }
     if (g_dcDevice) {
         g_dcDevice->Commit();
     }
-    if (!moving && g_overlay) {
-        KillTimer(g_overlay, BAR_TIMER_ID);
+    if (!moving) {
+        StopBarTimer();
     }
 }
 
-#endif  // USE_DCOMP_THUMBNAILS
 
-#if USE_DCOMP_THUMBNAILS
 // Releases every DirectComposition object of a tile (and of its dialogs).
 static void ReleaseDCompVisuals(Tile& t, bool& changed) {
     for (auto& k : t.kids) {
@@ -3080,7 +3632,7 @@ static void ReleaseDCompVisuals(Tile& t, bool& changed) {
     t.kids.clear();
 
     if (t.iconVisual) {
-        auto* iv = static_cast<IDCompositionVisual2*>(t.iconVisual);
+        auto* iv = t.iconVisual;
         if (g_dcIcons) {
             g_dcIcons->RemoveVisual(iv);
         }
@@ -3089,11 +3641,11 @@ static void ReleaseDCompVisuals(Tile& t, bool& changed) {
         changed = true;
     }
     if (t.iconFx) {
-        static_cast<IDCompositionEffectGroup*>(t.iconFx)->Release();
+        t.iconFx->Release();
         t.iconFx = nullptr;
     }
     if (t.dcVisual) {
-        auto* v = static_cast<IDCompositionVisual2*>(t.dcVisual);
+        auto* v = t.dcVisual;
         if (g_dcTiles) {
             g_dcTiles->RemoveVisual(v);
         }
@@ -3102,7 +3654,7 @@ static void ReleaseDCompVisuals(Tile& t, bool& changed) {
         changed = true;
     }
     if (t.dcFx) {
-        static_cast<IDCompositionEffectGroup*>(t.dcFx)->Release();
+        t.dcFx->Release();
         t.dcFx = nullptr;
     }
     if (t.dcThumb) {
@@ -3110,10 +3662,8 @@ static void ReleaseDCompVisuals(Tile& t, bool& changed) {
         t.dcThumb = nullptr;
     }
 }
-#endif
 
 static void UnregisterTiles() {
-#if USE_DCOMP_THUMBNAILS
     ClearDesktopBar();
     g_tilesOp = -1.0f;
     g_holdTiles = false;
@@ -3122,7 +3672,7 @@ static void UnregisterTiles() {
         ReleaseDCompVisuals(t, dcChanged);
     }
     if (g_emptyVisual) {
-        auto* ev = static_cast<IDCompositionVisual2*>(g_emptyVisual);
+        auto* ev = g_emptyVisual;
         if (g_dcIcons) {
             g_dcIcons->RemoveVisual(ev);
         }
@@ -3131,11 +3681,11 @@ static void UnregisterTiles() {
         dcChanged = true;
     }
     if (g_emptyFx) {
-        static_cast<IDCompositionEffectGroup*>(g_emptyFx)->Release();
+        g_emptyFx->Release();
         g_emptyFx = nullptr;
     }
     if (g_emptySurface) {
-        static_cast<IDCompositionSurface*>(g_emptySurface)->Release();
+        g_emptySurface->Release();
         g_emptySurface = nullptr;
     }
     g_dcTop = nullptr;
@@ -3143,7 +3693,6 @@ static void UnregisterTiles() {
     if (dcChanged && g_dcDevice) {
         g_dcDevice->Commit();
     }
-#endif
     for (auto& t : g_tiles) {
         if (t.thumb) {
             DwmUnregisterThumbnail(t.thumb);
@@ -3161,7 +3710,24 @@ static void BuildTiles() {
     g_relayoutT = 1.0f;
 
     EnumCtx ctx{ g_workRect, {} };
+    std::wstring appKey;
+    if (g_exposeMode && g_exposeAppOnly && g_prevForeground) {
+        HWND root = GetAncestor(g_prevForeground, GA_ROOTOWNER);
+        HWND front = root ? root : g_prevForeground;
+        // The desktop and the taskbar belong to the shell's explorer.exe, which File
+        // Explorer windows share: with those in front there is no app to filter by.
+        wchar_t frontCls[96] = {};
+        GetClassNameW(front, frontCls, 96);
+        if (!IsDeniedClass(frontCls) && GetAppKey(front, appKey)) {
+            ctx.appKey = &appKey;
+        }
+    }
     EnumWindows(EnumProc, reinterpret_cast<LPARAM>(&ctx));
+    if (ctx.appKey && ctx.hwnds.empty()) {
+        // Nothing of that app on this desktop (you were on the desktop, say): show everything.
+        ctx.appKey = nullptr;
+        EnumWindows(EnumProc, reinterpret_cast<LPARAM>(&ctx));
+    }
 
     // EnumWindows returns top-most first. Minimized windows go after the
     // normal ones: they are "behind" everything and end up last in the grid.
@@ -3206,13 +3772,12 @@ static void BuildTiles() {
         wchar_t cls[96] = {};
         wchar_t title[48] = {};
         GetClassNameW(h, cls, 96);
-        GetWindowTextW(h, title, 48);
+        InternalGetWindowText(h, title, 48);
         Wh_Log(L"  window [%s] \"%s\" (%ldx%ld)%s", cls, title,
                r.right - r.left, r.bottom - r.top,
                minimized ? L" minimized" : L"");
     }
 
-#if USE_DCOMP_THUMBNAILS
     // Before layout, so the grid is computed from the rects the thumbnails
     // will really start from.
     for (auto& t : g_tiles) {
@@ -3238,10 +3803,6 @@ static void BuildTiles() {
                            (SHOW_TITLES ? TITLE_H + (SHOW_ICONS ? TITLE_GAP : 0) : 0)
                      : 0;
     PrepareDesktopCards();  // the bar takes space from the bottom of the grid
-#else
-    g_iconBand = 0;
-    g_barBand = 0;
-#endif
 
     LayoutTiles();
 
@@ -3255,7 +3816,6 @@ static void BuildTiles() {
 
     // Register bottom-most first so the top-most window is drawn last.
     for (size_t i = g_tiles.size(); i-- > 0;) {
-#if USE_DCOMP_THUMBNAILS
         if (CreateDCompTile(g_tiles[i])) {
             // Dialogs right above their owner (bottom-most first).
             for (size_t k = g_tiles[i].kids.size(); k-- > 0;) {
@@ -3264,19 +3824,16 @@ static void BuildTiles() {
             CreateDCompIcon(g_tiles[i]);
             continue;
         }
-#endif
         if (FAILED(DwmRegisterThumbnail(g_overlay, g_tiles[i].hwnd,
                                         &g_tiles[i].thumb))) {
             g_tiles[i].thumb = nullptr;
         }
     }
 
-#if USE_DCOMP_THUMBNAILS
     CreateDesktopBarVisuals();
     if (g_tiles.empty()) {
         CreateDCompEmptyMessage();
     }
-#endif
 }
 
 // ---------------------------------------------------------------------------
@@ -3308,7 +3865,7 @@ struct TaskbarSlide {
     bool cloaked = false; // the real taskbar is hidden while its copy slides
     double createdMs = 0.0;
     float srcW = 1.0f, srcH = 1.0f;
-    void* visual = nullptr;        // IDCompositionVisual2*: the copy
+    IDCompositionVisual2* visual = nullptr;  // the copy
     HTHUMBNAIL thumb = nullptr;
 };
 static std::vector<TaskbarSlide> g_taskbars;
@@ -3342,10 +3899,9 @@ static void RestoreTaskbars() {
 
     UncloakTaskbars();
 
-#if USE_DCOMP_THUMBNAILS
     for (auto& s : g_taskbars) {
         if (s.visual) {
-            auto* v = static_cast<IDCompositionVisual2*>(s.visual);
+            auto* v = s.visual;
             if (g_dcTaskbarLayer) {
                 g_dcTaskbarLayer->RemoveVisual(v);
             }
@@ -3360,12 +3916,10 @@ static void RestoreTaskbars() {
     if (g_dcDevice) {
         g_dcDevice->Commit();
     }
-#endif
 
     g_taskbars.clear();
 }
 
-#if USE_DCOMP_THUMBNAILS
 
 static void AddSlidableTaskbar(HWND tb, const std::vector<RECT>& monitors) {
     if (!tb) {
@@ -3397,21 +3951,22 @@ static void AddSlidableTaskbar(HWND tb, const std::vector<RECT>& monitors) {
     const int monH = g_workRect.bottom - g_workRect.top;
     const int w = r.right - r.left;
     const int h = r.bottom - r.top;
+    const int extra = static_cast<int>(std::lround(TASKBAR_EXTRA_PX * g_dpiScale));
 
     TaskbarSlide t;
     t.hwnd = tb;
     t.orig = r;
     if (w >= monW - 4 && h < monH / 2) {  // horizontal bar
         if (r.top > g_workRect.top + monH / 2) {
-            t.dy = (g_workRect.bottom - r.top) + TASKBAR_EXTRA_PX;    // bottom: down
+            t.dy = (g_workRect.bottom - r.top) + extra;    // bottom: down
         } else {
-            t.dy = -((r.bottom - g_workRect.top) + TASKBAR_EXTRA_PX);  // top: up
+            t.dy = -((r.bottom - g_workRect.top) + extra);  // top: up
         }
     } else if (h >= monH - 4 && w < monW / 2) {  // vertical bar
         if (r.left > g_workRect.left + monW / 2) {
-            t.dx = (g_workRect.right - r.left) + TASKBAR_EXTRA_PX;     // right
+            t.dx = (g_workRect.right - r.left) + extra;     // right
         } else {
-            t.dx = -((r.right - g_workRect.left) + TASKBAR_EXTRA_PX);  // left
+            t.dx = -((r.right - g_workRect.left) + extra);  // left
         }
     } else {
         Wh_Log(L"Taskbar slide: unusual taskbar rect (%ld,%ld,%ld,%ld), skipped",
@@ -3487,13 +4042,11 @@ static void PlaceTaskbarCopy(TaskbarSlide& s, int ox, int oy) {
         0.0f, h / s.srcH,
         static_cast<float>(s.orig.left - g_workRect.left + ox),
         static_cast<float>(s.orig.top - g_workRect.top + oy));
-    static_cast<IDCompositionVisual2*>(s.visual)->SetTransform(m);
+    s.visual->SetTransform(m);
 }
 
-#endif  // USE_DCOMP_THUMBNAILS
 
 static void BeginTaskbarSlide() {
-#if USE_DCOMP_THUMBNAILS
     if (!SLIDE_TASKBAR || !g_dcOk) {
         return;
     }
@@ -3513,13 +4066,11 @@ static void BeginTaskbarSlide() {
     if (g_taskbars.empty()) {
         Wh_Log(L"Taskbar slide: no taskbar to slide on this monitor");
     }
-#endif
 }
 
 // p = Mission Control progress: the taskbar is gone at TASKBAR_HIDE_END.
 // Returns true if the DirectComposition tree changed (caller commits).
 static bool ApplyTaskbarSlide(float p) {
-#if USE_DCOMP_THUMBNAILS
     if (g_taskbars.empty()) {
         return false;
     }
@@ -3548,86 +4099,103 @@ static bool ApplyTaskbarSlide(float p) {
         }
     }
     return changed;
-#else
-    (void)p;
-    return false;
-#endif
 }
 
 // Windows being closed from Mission Control. Such a window is hidden first (so
-// no close animation has anything to animate), then asked to close; if it is
-// still there a moment later and is waiting for an answer, it is brought back.
+// no close animation has anything to animate), then asked to close. If it is
+// still there a moment later (it asked "Save changes?", it closes to the tray,
+// or it isn't responding) a window we hid is always shown again: an unsaved
+// document or a prompt must never stay invisible.
 struct PendingClose {
     HWND hwnd = nullptr;
     double startMs = 0.0;
     double postMs = 0.0;
-    bool hidden = false;  // we hid it ourselves
-    bool posted = false;  // WM_CLOSE sent
+    double shownMs = 0.0;
+    bool hidden = false;         // we hid it ourselves
+    bool posted = false;         // WM_CLOSE sent
+    bool noTransitions = false;  // we turned its DWM transitions off
+    bool shownBack = false;      // it survived the close and was shown again
 };
 static std::vector<PendingClose> g_pendingCloses;
 
-// Unloading: finish what was started (a hidden window must not stay hidden
-// without having been asked to close).
+// DWM's open / close / show / hide transitions of ONE window. Turned off on the
+// window being closed so Windows' own close animation doesn't play in front of
+// Mission Control, and turned back on if the window is still there afterwards.
+static HRESULT SetWindowTransitions(HWND hwnd, bool enabled) {
+    BOOL disabled = enabled ? FALSE : TRUE;
+    const HRESULT hr = DwmSetWindowAttribute(hwnd, DWMWA_TRANSITIONS_FORCEDISABLED,
+                                             &disabled, sizeof(disabled));
+    static bool logged = false;
+    if (FAILED(hr) && !logged) {
+        logged = true;
+        Wh_Log(L"DWMWA_TRANSITIONS_FORCEDISABLED refused on another app's window (0x%08X)",
+               static_cast<unsigned>(hr));
+    }
+    return hr;
+}
+
+// Unloading: finish what was started. A window we hid comes back, and one that
+// was not asked to close yet is asked now.
 static void FlushPendingCloses() {
     for (auto& pc : g_pendingCloses) {
-        if (IsWindow(pc.hwnd) && !pc.posted) {
+        if (!IsWindow(pc.hwnd)) {
+            continue;
+        }
+        if (pc.noTransitions) {
+            SetWindowTransitions(pc.hwnd, true);
+        }
+        if (pc.hidden && !pc.shownBack) {
+            ShowWindowAsync(pc.hwnd, SW_SHOWNA);
+        }
+        if (!pc.posted) {
             PostMessageW(pc.hwnd, WM_CLOSE, 0, 0);
         }
     }
     g_pendingCloses.clear();
 }
 
-// A window closed from Mission Control would play Windows' own close animation
-// on screen, in front of Mission Control. So the system animations are switched
-// off for a moment while it closes (temporary, never saved) and switched back on
-// right after.
-static bool g_animSuppressed = false;
-static double g_animSuppressMs = 0.0;
+// The size of everything follows the monitor, so the interface looks right from
+// a 1366x768 laptop to a 2560x1440 or a 4K screen, at any display scaling. The
+// resolution factor is computed on the logical size (physical pixels / DPI
+// scale) and everything is then multiplied by the DPI scale, since this thread
+// works in physical pixels. The icons are proportional to the logical height
+// (56 px at 1440); the rest (gaps, titles, close button, the desktops bar)
+// scales more gently so text stays readable on small screens. Window titles
+// also grow on monitors wider than 16:9: more windows fit in each row there,
+// so the previews are smaller and a title sized only by the height reads small.
+// Run before every layout.
+static void UpdateUiScale(int monitorWidth, int monitorHeight, UINT dpi) {
+    const float d = static_cast<float>(dpi < 96 ? 96 : dpi) / 96.0f;
+    g_dpiScale = d;
 
-static void SuppressWindowAnimations() {
-    g_animSuppressMs = NowMs();
-    if (g_animSuppressed) {
-        return;
-    }
-    BOOL on = TRUE;
-    if (!SystemParametersInfoW(0x1042 /*SPI_GETCLIENTAREAANIMATION*/, 0, &on, 0) || !on) {
-        return;  // already off: nothing to suppress
-    }
-    if (SystemParametersInfoW(0x1043 /*SPI_SETCLIENTAREAANIMATION*/, 0,
-                              reinterpret_cast<PVOID>(static_cast<UINT_PTR>(FALSE)), 0)) {
-        g_animSuppressed = true;
-    }
-}
-
-static void RestoreWindowAnimations() {
-    if (!g_animSuppressed) {
-        return;
-    }
-    g_animSuppressed = false;
-    SystemParametersInfoW(0x1043 /*SPI_SETCLIENTAREAANIMATION*/, 0,
-                          reinterpret_cast<PVOID>(static_cast<UINT_PTR>(TRUE)), 0);
-}
-
-// The size of everything follows the resolution of the monitor, so the interface
-// looks right from a 1366x768 laptop to a 2560x1440 or a 4K screen. The icons
-// are proportional to the height (56 px at 1440); the rest (gaps, titles, close
-// button, the desktops bar) scales more gently so text stays readable on small
-// screens. Run before every layout.
-static void UpdateUiScale(int monitorHeight) {
-    const float h = static_cast<float>(monitorHeight < 480 ? 480 : monitorHeight);
+    float h = static_cast<float>(monitorHeight) / d;
+    h = h < 480.0f ? 480.0f : h;
     float s = 0.55f + 0.45f * (h / 1440.0f);
     s = s < 0.78f ? 0.78f : (s > 1.5f ? 1.5f : s);
-    g_uiScale = s;
+    g_uiScale = s * d;
+    // `lo` is the smallest size at 100 % scaling.
     auto sc = [&](float v, int lo) {
-        const int r = static_cast<int>(std::lround(v * s));
+        float l = v * s;
+        if (l < static_cast<float>(lo)) {
+            l = static_cast<float>(lo);
+        }
+        return static_cast<int>(std::lround(l * d));
+    };
+    auto px = [&](float v, int lo) {
+        const int r = static_cast<int>(std::lround(v * d));
         return r < lo ? lo : r;
     };
 
-    const int icon = static_cast<int>(std::lround(h * 56.0f / 1440.0f));
-    ICON_SIZE = icon < 32 ? 32 : (icon > 96 ? 96 : icon);
+    float icon = std::round(h * 56.0f / 1440.0f);
+    icon = icon < 32.0f ? 32.0f : (icon > 96.0f ? 96.0f : icon);
+    ICON_SIZE = static_cast<int>(std::lround(icon * d));
     ICON_GAP = sc(14.0f, 8);
-    TITLE_FONT_PX = sc(14.0f, 11);
-    TITLE_H = sc(20.0f, 16);
+    // sqrt(aspect / 16:9), from 1 (16:9 or narrower) to 1.25 (32:9).
+    float wide = std::sqrt((static_cast<float>(monitorWidth) / static_cast<float>(monitorHeight > 0 ? monitorHeight : 1)) /
+                           (16.0f / 9.0f));
+    wide = wide < 1.0f ? 1.0f : (wide > 1.25f ? 1.25f : wide);
+    TITLE_FONT_PX = sc(14.0f * wide, 11);
+    TITLE_H = sc(20.0f * wide, 16);
     TITLE_GAP = sc(4.0f, 3);
     CB_RADIUS = sc(13.0f, 10);
     CB_INSET = sc(10.0f, 7);
@@ -3644,6 +4212,12 @@ static void UpdateUiScale(int monitorHeight) {
     BAR_WELL_W = sc(90.0f, 64);
     BAR_WELL_H = sc(50.0f, 36);
     BAR_WELL_Y = sc(6.0f, 4);
+
+    // The hover outline only follows the DPI.
+    HL_GAP = px(4.0f, 1);
+    HL_THICK = px(3.0f, 1);
+    HL_RADIUS = px(12.0f, 2);
+    HL_PAD = px(10.0f, 2);
 }
 
 // Windows "Animation effects" (Settings > Accessibility > Visual effects).
@@ -3699,7 +4273,7 @@ static void ApplyProgress(float p) {
     // The backdrop fades in between FADE_START_PROGRESS and FADE_END_PROGRESS
     // (a bit later than the start so the taskbar is seen leaving first). The
     // alpha is constant outside that, so only touch the window when it changes.
-    if (FADE_WITH_ALPHA) {
+    {
         const float f = Clamp01((g_progress - FADE_START_PROGRESS) /
                                 (FADE_END_PROGRESS - FADE_START_PROGRESS));
         // Ease-out: most of the coverage happens early in the fade, which
@@ -3714,14 +4288,11 @@ static void ApplyProgress(float p) {
     const bool taskbarChanged = ApplyTaskbarSlide(g_progress);
 
     // Only touch the thumbnails that actually moved.
-#if USE_DCOMP_THUMBNAILS
     bool dcChanged = taskbarChanged;
     // The icons fade with the swipe itself: same progress the fingers drive.
     const float iconOp = Smooth01((g_progress - ICON_FADE_START) / (1.0f - ICON_FADE_START));
     const float minOp = Smooth01(g_progress / MINIMIZED_FADE_END);
-#endif
     for (auto& t : g_tiles) {
-#if USE_DCOMP_THUMBNAILS
         if (t.dcVisual) {
             const RECT r = LerpRect(t.from, EffectiveTo(t), g_progress);
             const bool moved = !(t.placed && EqualRect(&t.last, &r));
@@ -3733,7 +4304,7 @@ static void ApplyProgress(float p) {
                 dcChanged = true;
             }
             if (t.dcFx && t.fadeIn && OpacityChanged(minOp, t.fxOp)) {
-                static_cast<IDCompositionEffectGroup*>(t.dcFx)->SetOpacity(minOp);
+                t.dcFx->SetOpacity(minOp);
                 t.fxOp = minOp;
                 dcChanged = true;
             }
@@ -3745,14 +4316,13 @@ static void ApplyProgress(float p) {
                     dcChanged = true;
                 }
                 if (OpacityChanged(iconOp, t.iconOp)) {
-                    static_cast<IDCompositionEffectGroup*>(t.iconFx)->SetOpacity(iconOp);
+                    t.iconFx->SetOpacity(iconOp);
                     t.iconOp = iconOp;
                     dcChanged = true;
                 }
             }
             continue;
         }
-#endif
         // Legacy tile: every DwmUpdateThumbnailProperties is a round trip to
         // dwm.exe, so only send what changed.
         if (!t.thumb) {
@@ -3781,7 +4351,6 @@ static void ApplyProgress(float p) {
             t.placed = true;
         }
     }
-#if USE_DCOMP_THUMBNAILS
     if (g_tilesFx) {
         // The tiles fade in during the first stretch and out during the last one,
         // so the swap with the real windows can't be seen.
@@ -3810,7 +4379,7 @@ static void ApplyProgress(float p) {
         }
     }
     if (g_emptyVisual) {
-        auto* ev = static_cast<IDCompositionVisual2*>(g_emptyVisual);
+        auto* ev = g_emptyVisual;
         if (!g_emptyPlaced) {
             const float W = static_cast<float>(g_workRect.right - g_workRect.left);
             const float H = static_cast<float>(g_workRect.bottom - g_workRect.top);
@@ -3824,7 +4393,7 @@ static void ApplyProgress(float p) {
         }
         const float eop = Smooth01((g_progress - EMPTY_FADE_START) / (1.0f - EMPTY_FADE_START));
         if (OpacityChanged(eop, g_emptyOp)) {
-            static_cast<IDCompositionEffectGroup*>(g_emptyFx)->SetOpacity(eop);
+            g_emptyFx->SetOpacity(eop);
             g_emptyOp = eop;
             dcChanged = true;
         }
@@ -3832,7 +4401,6 @@ static void ApplyProgress(float p) {
     if (dcChanged && g_dcDevice) {
         g_dcDevice->Commit();  // one batched update for every tile
     }
-#endif
 }
 
 // The touchpad reports each finger separately at a high rate. Render right
@@ -4111,7 +4679,6 @@ static bool OnCloseButton(const Tile& t, POINT pt) {
 }
 
 static void UpdateHover(int x, int y) {
-#if USE_DCOMP_THUMBNAILS
     // Over the desktops bar: the card reacts, there is no window ring.
     if (g_barBuilt && y >= g_barTop) {
         const int bi = HitBarCard(x, y);
@@ -4131,7 +4698,6 @@ static void UpdateHover(int x, int y) {
         SetBarHover(-1);
     }
     SetBarCloseHover(-1);
-#endif
 
     int idx = -1;
     POINT pt{ x, y };
@@ -4269,13 +4835,7 @@ static bool PrepareBackground(int W, int H) {
         return false;
     }
 
-    WIN32_FILE_ATTRIBUTE_DATA fa{};
-    GetFileAttributesExW(path.c_str(), GetFileExInfoStandard, &fa);
-    wchar_t tail[96];
-    swprintf(tail, 96, L"|%lu|%lu|%d|%d",
-             static_cast<unsigned long>(fa.ftLastWriteTime.dwHighDateTime),
-             static_cast<unsigned long>(fa.ftLastWriteTime.dwLowDateTime), W, H);
-    const std::wstring key = path + tail;
+    const std::wstring key = ImageCacheKey(path, W, H);
 
     if (g_bgBmp && key == g_bgKey) {
         return true;
@@ -4289,58 +4849,15 @@ static bool PrepareBackground(int W, int H) {
             CLSID_WICImagingFactory, nullptr, CLSCTX_INPROC_SERVER,
             IID_IWICImagingFactory, factory.put_void()));
 
-        winrt::com_ptr<IWICBitmapDecoder> decoder;
-        winrt::check_hresult(factory->CreateDecoderFromFilename(
-            path.c_str(), nullptr, GENERIC_READ,
-            WICDecodeMetadataCacheOnDemand, decoder.put()));
-
-        winrt::com_ptr<IWICBitmapFrameDecode> frame;
-        winrt::check_hresult(decoder->GetFrame(0, frame.put()));
-
-        UINT sw = 0, sh = 0;
-        winrt::check_hresult(frame->GetSize(&sw, &sh));
-        if (sw == 0 || sh == 0) {
-            return false;
-        }
-
-        // "Fill": scale to cover the monitor and crop the center.
-        UINT cw = sw, ch = sh;
-        const double srcAspect = static_cast<double>(sw) / sh;
-        const double dstAspect = static_cast<double>(W) / H;
-        if (srcAspect > dstAspect) {
-            cw = static_cast<UINT>(sh * dstAspect + 0.5);
-        } else {
-            ch = static_cast<UINT>(sw / dstAspect + 0.5);
-        }
-        if (cw == 0) cw = 1;
-        if (ch == 0) ch = 1;
-
-        WICRect clip{ static_cast<INT>((sw - cw) / 2), static_cast<INT>((sh - ch) / 2),
-                      static_cast<INT>(cw), static_cast<INT>(ch) };
-
-        winrt::com_ptr<IWICBitmapClipper> clipper;
-        winrt::check_hresult(factory->CreateBitmapClipper(clipper.put()));
-        winrt::check_hresult(clipper->Initialize(frame.get(), &clip));
-
+        // Blurred small, then scaled back up: the smooth upscale hides the shrink.
         const UINT smallW = static_cast<UINT>(W / WALLPAPER_SHRINK) < 8
                                 ? 8 : static_cast<UINT>(W / WALLPAPER_SHRINK);
         const UINT smallH = static_cast<UINT>(H / WALLPAPER_SHRINK) < 8
                                 ? 8 : static_cast<UINT>(H / WALLPAPER_SHRINK);
-
-        winrt::com_ptr<IWICBitmapScaler> down;
-        winrt::check_hresult(factory->CreateBitmapScaler(down.put()));
-        winrt::check_hresult(down->Initialize(
-            clipper.get(), smallW, smallH, WICBitmapInterpolationModeFant));
-
-        winrt::com_ptr<IWICFormatConverter> conv;
-        winrt::check_hresult(factory->CreateFormatConverter(conv.put()));
-        winrt::check_hresult(conv->Initialize(
-            down.get(), GUID_WICPixelFormat32bppBGRA, WICBitmapDitherTypeNone,
-            nullptr, 0.0, WICBitmapPaletteTypeCustom));
-
-        std::vector<uint8_t> blurBuf(static_cast<size_t>(smallW) * smallH * 4);
-        winrt::check_hresult(conv->CopyPixels(
-            nullptr, smallW * 4, static_cast<UINT>(blurBuf.size()), blurBuf.data()));
+        std::vector<uint8_t> blurBuf = DecodeImageFill(factory.get(), path, smallW, smallH);
+        if (blurBuf.empty()) {
+            return false;
+        }
 
         BoxBlur(blurBuf, static_cast<int>(smallW), static_cast<int>(smallH),
                 WALLPAPER_BLUR_RADIUS);
@@ -4458,9 +4975,7 @@ static void ApplyBackdropStyle(bool wallpaper) {
     BOOL dark = appsLight ? FALSE : TRUE;
     g_darkTheme = dark != FALSE;
     DwmSetWindowAttribute(g_overlay, 20 /*USE_IMMERSIVE_DARK_MODE*/, &dark, sizeof(dark));
-    if (ACTIVATE_PICK_EARLY) {
-        ForceOverlayActiveLook();
-    }
+    ForceOverlayActiveLook();
 
     int corner = 1;  // DWMWCP_DONOTROUND: full-screen, no rounded corners
     DwmSetWindowAttribute(g_overlay, 33 /*WINDOW_CORNER_PREFERENCE*/, &corner, sizeof(corner));
@@ -4506,7 +5021,18 @@ static void ShowOverlay() {
     POINT pt{};
     GetCursorPos(&pt);
 
-    HMONITOR mon = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+    HMONITOR mon = nullptr;
+    if (g_openFromKeyboard) {
+        // From the keyboard the cursor says nothing about where you are working:
+        // use the monitor of the window in front.
+        if (HWND fg = GetForegroundWindow()) {
+            mon = MonitorFromWindow(fg, MONITOR_DEFAULTTONULL);
+        }
+        g_openFromKeyboard = false;
+    }
+    if (!mon) {
+        mon = MonitorFromPoint(pt, MONITOR_DEFAULTTOPRIMARY);
+    }
     MONITORINFO mi{};
     mi.cbSize = sizeof(mi);
     GetMonitorInfoW(mon, &mi);
@@ -4518,21 +5044,16 @@ static void ShowOverlay() {
 
     ReadAccentColor();
 
-    if (FADE_WITH_ALPHA) {
-        SetLayeredWindowAttributes(g_overlay, 0, 0, LWA_ALPHA);
-        g_lastAlpha = 0;
-    }
+    SetLayeredWindowAttributes(g_overlay, 0, 0, LWA_ALPHA);
+    g_lastAlpha = 0;
 
     SetWindowPos(
         g_overlay, HWND_TOPMOST,
         g_workRect.left, g_workRect.top,
         g_workRect.right - g_workRect.left,
         g_workRect.bottom - g_workRect.top,
-        SWP_SHOWWINDOW | (ACTIVATE_OVERLAY ? 0 : SWP_NOACTIVATE));
-
-    if (ACTIVATE_OVERLAY) {
-        SetForegroundWindow(g_overlay);
-    }
+        SWP_SHOWWINDOW);
+    SetForegroundWindow(g_overlay);
 
     // Lay out against what the window REALLY got (DPI scaling or DWM can
     // make it differ from the monitor rect we asked for).
@@ -4549,7 +5070,16 @@ static void ShowOverlay() {
     ApplyBackdropStyle(g_wallpaperOk);
     InvalidateRect(g_overlay, nullptr, TRUE);
 
-#if USE_DCOMP_THUMBNAILS
+    // After a driver update or a GPU reset (TDR) the device is gone and every
+    // surface made from it fails: start DirectComposition over. Nothing of the
+    // old device is in use here, the previous gesture released it all.
+    if (g_dcOk && g_d3d && FAILED(g_d3d->GetDeviceRemovedReason())) {
+        Wh_Log(L"DComp: the GPU device was lost (0x%08X), recreating it",
+               static_cast<unsigned>(g_d3d->GetDeviceRemovedReason()));
+        ShutdownDComp();
+        InitDComp();
+    }
+
     if (g_dcOk && g_thumbHost) {
         // Same rect as the overlay, on top of it, never activated.
         SetWindowPos(g_thumbHost, HWND_TOPMOST,
@@ -4558,9 +5088,10 @@ static void ShowOverlay() {
                      g_workRect.bottom - g_workRect.top,
                      SWP_SHOWWINDOW | SWP_NOACTIVATE);
     }
-#endif
 
-    UpdateUiScale(g_workRect.bottom - g_workRect.top);
+    UpdateUiScale(g_workRect.right - g_workRect.left, g_workRect.bottom - g_workRect.top,
+                  MonitorDpi(mon));
+    PurgeDeadWindowIcons();
     BuildTiles();
     g_visible = true;
     BeginTaskbarSlide();
@@ -4605,7 +5136,8 @@ static void StopClockThread() {
         InterlockedExchange(&g_clockQuit, 1);
         InterlockedExchange(&g_animActive, 0);
         SetEvent(g_clockWake);
-        WaitForSingleObject(g_clockThread, 2000);
+        // It wakes up within a frame; it must be gone before the mod is unloaded.
+        WaitForSingleObject(g_clockThread, INFINITE);
         CloseHandle(g_clockThread);
         g_clockThread = nullptr;
     }
@@ -4641,9 +5173,6 @@ static void HideOverlay(bool restoreFocus = false) {
     // The real taskbar comes back first; its copy is removed below, in the
     // same frame as the overlay disappears, so there is no gap.
     UncloakTaskbars();
-    if (g_pendingCloses.empty()) {
-        RestoreWindowAnimations();
-    }
 
     // Same reason as in StepAnimation: bring the previous window back BEFORE
     // hiding the overlay, so no other window gets activated in between.
@@ -4653,7 +5182,7 @@ static void HideOverlay(bool restoreFocus = false) {
 
     if (g_overlay) {
         KillTimer(g_overlay, RENDER_TIMER_ID);
-        KillTimer(g_overlay, BAR_TIMER_ID);
+        StopBarTimer();
         if (g_pendingCloses.empty()) {
             KillTimer(g_overlay, CLOSE_POLL_TIMER_ID);
         }
@@ -4663,11 +5192,9 @@ static void HideOverlay(bool restoreFocus = false) {
     HideHighlight();
     g_trackingMouse = false;
     UnregisterTiles();
-#if USE_DCOMP_THUMBNAILS
     if (g_thumbHost) {
         ShowWindow(g_thumbHost, SW_HIDE);
     }
-#endif
 
     g_prevForeground = nullptr;
 
@@ -4675,9 +5202,7 @@ static void HideOverlay(bool restoreFocus = false) {
     g_renderTimerSet = false;
     g_closeTarget = nullptr;
     g_restoreIssued = false;
-#if USE_DCOMP_THUMBNAILS
     g_holdTiles = false;
-#endif
     g_lastHideMs = NowMs();
     g_kbSel = -1;
     g_hoverClose = false;
@@ -4687,6 +5212,7 @@ static void HideOverlay(bool restoreFocus = false) {
     g_visible = false;
     g_open = false;
     g_dragging = false;
+    g_exposeMode = false;
     g_progress = 0.0f;
     g_target = 0.0f;
     SetClickThrough(true);
@@ -4850,9 +5376,8 @@ static void StepAnimation() {
 // The new thumbnail is created and positioned BEFORE the old one is removed,
 // so there is no frame without it. Stays live: it is still a DWM thumbnail.
 static void BringTileToFront(Tile& t) {
-#if USE_DCOMP_THUMBNAILS
     if (t.dcVisual && g_dcTiles && g_dcDevice) {
-        auto* v = static_cast<IDCompositionVisual2*>(t.dcVisual);
+        auto* v = t.dcVisual;
 
         // A normal window goes above every normal window but stays below the
         // always-on-top ones, exactly like the real z-order will be once it is
@@ -4862,7 +5387,7 @@ static void BringTileToFront(Tile& t) {
             for (size_t i = g_tiles.size(); i-- > 0;) {
                 const Tile& o = g_tiles[i];
                 if (&o != &t && o.topmost && !o.minimized && o.dcVisual) {
-                    below = static_cast<IDCompositionVisual2*>(o.dcVisual);
+                    below = o.dcVisual;
                     break;
                 }
             }
@@ -4871,7 +5396,7 @@ static void BringTileToFront(Tile& t) {
         // Already on top (the owner or one of its dialogs is the top-most visual)?
         bool groupIsTop = (v == g_dcTop);
         for (auto& k : t.kids) {
-            if (k.dcVisual && static_cast<IDCompositionVisual2*>(k.dcVisual) == g_dcTop) {
+            if (k.dcVisual && k.dcVisual == g_dcTop) {
                 groupIsTop = true;
             }
         }
@@ -4882,7 +5407,7 @@ static void BringTileToFront(Tile& t) {
         g_dcTiles->RemoveVisual(v);
         for (auto& k : t.kids) {
             if (k.dcVisual) {
-                g_dcTiles->RemoveVisual(static_cast<IDCompositionVisual2*>(k.dcVisual));
+                g_dcTiles->RemoveVisual(k.dcVisual);
             }
         }
 
@@ -4898,7 +5423,7 @@ static void BringTileToFront(Tile& t) {
             if (!t.kids[k].dcVisual) {
                 continue;
             }
-            auto* kv = static_cast<IDCompositionVisual2*>(t.kids[k].dcVisual);
+            auto* kv = t.kids[k].dcVisual;
             g_dcTiles->AddVisual(kv, TRUE, prev);
             prev = kv;
         }
@@ -4908,7 +5433,6 @@ static void BringTileToFront(Tile& t) {
         g_dcDevice->Commit();
         return;
     }
-#endif
     if (!t.thumb) {
         return;
     }
@@ -4956,41 +5480,28 @@ static void BeginClose(int pickIndex) {
         Tile& t = g_tiles[pickIndex];
         g_closeTarget = t.hwnd;
 
-#if USE_DCOMP_THUMBNAILS
         if (t.dcFx && t.fadeIn) {
             // The picked minimized window becomes the real one: keep its tile
             // fully visible instead of fading it out with the swipe.
             t.fadeIn = false;
             t.fxOp = 1.0f;
-            static_cast<IDCompositionEffectGroup*>(t.dcFx)->SetOpacity(1.0f);
+            t.dcFx->SetOpacity(1.0f);
         }
-#endif
-#if USE_DCOMP_THUMBNAILS
         g_holdTiles = t.minimized;  // a minimized pick keeps the tiles up while it is restored
-#endif
         BringTileToFront(t);
 
         if (t.minimized) {
-            if (ACTIVATE_PICK_EARLY) {
-                // Restore it right away: it is hidden behind the overlay while
-                // the tile flies back, and its Mica comes in on the way.
-                g_restoreIssued = true;
-                g_restoreMs = NowMs();
-                ShowWindowAsync(t.hwnd, SW_RESTORE);
-            }
-        } else if (ACTIVATE_PICK_EARLY) {
+            // Restore it right away: it is hidden behind the overlay while the
+            // tile flies back, and its Mica comes in on the way.
+            g_restoreIssued = true;
+            g_restoreMs = NowMs();
+            ShowWindowAsync(t.hwnd, SW_RESTORE);
+        } else {
             // Activate (and raise) it now so its Mica turns on during the
             // flight instead of all at once when the animation ends.
             SetForegroundWindow(ResolvePickTarget(t.hwnd));
-        } else {
-            // Raise the real window now (without activating, so the overlay
-            // keeps its Mica). ASYNC so a hung app can't block explorer here.
-            SetWindowPos(t.hwnd, HWND_TOP, 0, 0, 0, 0,
-                         SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE |
-                             SWP_ASYNCWINDOWPOS);
         }
-    } else if (ACTIVATE_PICK_EARLY && g_prevForeground &&
-               IsWindow(g_prevForeground) && !IsIconic(g_prevForeground)) {
+    } else if (g_prevForeground && IsWindow(g_prevForeground) && !IsIconic(g_prevForeground)) {
         // Closing without picking: the window you were in comes back, same idea.
         SetForegroundWindow(g_prevForeground);
     }
@@ -5002,7 +5513,6 @@ static void BeginClose(int pickIndex) {
 // Closing windows from Mission Control, keyboard selection
 // ---------------------------------------------------------------------------
 
-#if USE_DCOMP_THUMBNAILS
 // Keeps the "top-most visual" marker valid after a tile was removed.
 static void FixTopMarker() {
     g_dcTop = nullptr;
@@ -5011,17 +5521,16 @@ static void FixTopMarker() {
         if (!t.dcVisual) {
             continue;
         }
-        g_dcTop = static_cast<IDCompositionVisual2*>(t.dcVisual);
+        g_dcTop = t.dcVisual;
         for (auto& k : t.kids) {  // dialogs, top-most first
             if (k.dcVisual) {
-                g_dcTop = static_cast<IDCompositionVisual2*>(k.dcVisual);
+                g_dcTop = k.dcVisual;
                 break;
             }
         }
         break;
     }
 }
-#endif
 
 // The window is gone: take its tile out and let the others glide to their new slots.
 static void RemoveTile(size_t i) {
@@ -5034,31 +5543,25 @@ static void RemoveTile(size_t i) {
         t.toPrev = EffectiveTo(t);
     }
 
-#if USE_DCOMP_THUMBNAILS
     bool changed = false;
     ReleaseDCompVisuals(g_tiles[i], changed);
-#endif
     if (g_tiles[i].thumb) {
         DwmUnregisterThumbnail(g_tiles[i].thumb);
         g_tiles[i].thumb = nullptr;
     }
     g_tiles.erase(g_tiles.begin() + static_cast<std::ptrdiff_t>(i));
 
-#if USE_DCOMP_THUMBNAILS
     FixTopMarker();
     if (g_dcDevice) {
         g_dcDevice->Commit();
     }
-#endif
 
     g_kbSel = -1;
     g_hoverClose = false;
     HideHighlight();
 
     if (g_tiles.empty()) {
-#if USE_DCOMP_THUMBNAILS
         CreateDCompEmptyMessage();
-#endif
         ApplyProgress(g_progress);
         InvalidateRect(g_overlay, nullptr, TRUE);  // text fallback without DComp
         return;
@@ -5098,7 +5601,9 @@ static void CloseTile(int idx) {
     pc.hwnd = hwnd;
     pc.startMs = NowMs();
 
-    SuppressWindowAnimations();  // Windows' own close animation
+    // Windows' own close animation of this window would play in front of
+    // Mission Control.
+    pc.noTransitions = SUCCEEDED(SetWindowTransitions(hwnd, false));
     if (HIDE_BEFORE_CLOSE && !minimized && !uwpFrame && IsWindowVisible(hwnd)) {
         // Hidden first: the close then happens on an invisible window, so the
         // close animation of other mods (they play it when a visible window is
@@ -5136,6 +5641,20 @@ static void PollPendingCloses() {
             continue;
         }
 
+        if (pc.shownBack) {
+            // Its transitions come back on once the show has happened, so
+            // showing it again doesn't animate in front of Mission Control.
+            if (now - pc.shownMs > 500.0) {
+                if (pc.noTransitions) {
+                    SetWindowTransitions(pc.hwnd, true);
+                }
+                g_pendingCloses.erase(g_pendingCloses.begin() + static_cast<std::ptrdiff_t>(i));
+                continue;
+            }
+            i++;
+            continue;
+        }
+
         if (!pc.posted) {
             // The hide has to reach the app before the close request does.
             if (!IsWindowVisible(pc.hwnd) || now - pc.startMs > 250.0) {
@@ -5148,30 +5667,28 @@ static void PollPendingCloses() {
         }
 
         if (now - pc.postMs > 1200.0) {
-            if (pc.hidden && (!IsWindowEnabled(pc.hwnd) || IsHungAppWindow(pc.hwnd))) {
-                // Waiting for an answer (a modal "Save changes?" disables its
-                // owner) or not responding: bring it back, with its dialog.
-                SuppressWindowAnimations();
+            // Still there: it is asking for confirmation (in a dialog or inside
+            // its own window), it closes to the tray, or it isn't responding. A
+            // window we hid is always shown again; an app that closes to the
+            // tray then simply shows up once more.
+            if (pc.hidden) {
                 ShowWindowAsync(pc.hwnd, SW_SHOWNA);
+                pc.shownBack = true;
+                pc.shownMs = now;
+                i++;
+                continue;
             }
-            // Otherwise it hid itself to the tray, which is what "close"
-            // means for that app: leave it that way.
+            if (pc.noTransitions) {
+                SetWindowTransitions(pc.hwnd, true);
+            }
             g_pendingCloses.erase(g_pendingCloses.begin() + static_cast<std::ptrdiff_t>(i));
             continue;
         }
         i++;
     }
 
-    if (g_pendingCloses.empty()) {
-        // The transition starts when the window disappears, so the animations
-        // stay off a little longer.
-        if (g_animSuppressed && now - g_animSuppressMs < 450.0) {
-            return;
-        }
-        RestoreWindowAnimations();
-        if (g_overlay) {
-            KillTimer(g_overlay, CLOSE_POLL_TIMER_ID);
-        }
+    if (g_pendingCloses.empty() && g_overlay) {
+        KillTimer(g_overlay, CLOSE_POLL_TIMER_ID);
     }
 }
 
@@ -5187,6 +5704,20 @@ static void SelectTile(int idx) {
     ShowHighlight(r);
 }
 
+// The tile of the window you were in when Mission Control opened, or -1.
+static int PrevForegroundTile() {
+    if (!g_prevForeground) {
+        return -1;
+    }
+    HWND root = GetAncestor(g_prevForeground, GA_ROOTOWNER);
+    for (int i = 0; i < static_cast<int>(g_tiles.size()); i++) {
+        if (g_tiles[i].hwnd == g_prevForeground || g_tiles[i].hwnd == root) {
+            return i;
+        }
+    }
+    return -1;
+}
+
 // Arrow keys: the nearest tile in that direction (rows count less than distance).
 static void MoveSelection(int dx, int dy) {
     const int n = static_cast<int>(g_tiles.size());
@@ -5196,17 +5727,7 @@ static void MoveSelection(int dx, int dy) {
 
     if (g_kbSel < 0 || g_kbSel >= n) {
         // First key press: start from the window you were in.
-        int start = 0;
-        if (g_prevForeground) {
-            HWND root = GetAncestor(g_prevForeground, GA_ROOTOWNER);
-            for (int i = 0; i < n; i++) {
-                if (g_tiles[i].hwnd == g_prevForeground || g_tiles[i].hwnd == root) {
-                    start = i;
-                    break;
-                }
-            }
-        }
-        SelectTile(start);
+        SelectTile(std::max(0, PrevForegroundTile()));
         return;
     }
 
@@ -5252,7 +5773,6 @@ static void CycleSelection(int step) {
     SelectTile((g_kbSel + step + n) % n);
 }
 
-#if USE_DCOMP_THUMBNAILS
 // A card of the desktops bar was clicked: leave Mission Control and switch to
 // that desktop (or create a new one). The shortcut is sent once the overlay is
 // gone, so Windows' own desktop slide is what you see.
@@ -5303,7 +5823,163 @@ static void CloseDesktopCard(int idx) {
     g_prevForeground = nullptr;
     BeginClose(-1);
 }
-#endif
+
+// ---- Reordering desktops by dragging their cards ----
+
+static int DesktopCardCount() {
+    const int n = static_cast<int>(g_cards.size());
+    return (n > 0 && g_cards.back().isAdd) ? n - 1 : n;
+}
+
+// A press on a desktop card: a click (switch to it) or the start of a drag,
+// decided by how far the mouse moves before the button is let go.
+static bool BeginCardPress(int x, int y) {
+    if (!g_open || g_dragging || !g_barBuilt || y < g_barTop || HitBarClose(x, y) >= 0) {
+        return false;
+    }
+    const int idx = HitBarCard(x, y);
+    if (idx < 0 || g_cards[static_cast<size_t>(idx)].isAdd || DesktopCardCount() < 2 ||
+        !GetVdmInternal()) {
+        return false;  // HandleClick() does what a click there does
+    }
+    g_cardPress = idx;
+    g_cardPressPt = POINT{ x, y };
+    g_cardDrag = false;
+    g_cardGrabDx = x - g_cards[static_cast<size_t>(idx)].x;
+    g_cardDrop = idx;
+    g_cardSlots.clear();
+    for (int i = 0; i < DesktopCardCount(); i++) {
+        g_cardSlots.push_back(g_cards[static_cast<size_t>(i)].x);
+    }
+    SetCapture(g_overlay);
+    return true;
+}
+
+static void UpdateCardPress(int x, int y) {
+    if (g_cardPress < 0) {
+        return;
+    }
+    DesktopCard& d = g_cards[static_cast<size_t>(g_cardPress)];
+
+    if (!g_cardDrag) {
+        if (std::abs(x - g_cardPressPt.x) < 6 && std::abs(y - g_cardPressPt.y) < 6) {
+            return;
+        }
+        g_cardDrag = true;
+        // Lifted above the others while it moves.
+        if (g_barStrip && d.visual) {
+            g_barStrip->RemoveVisual(d.visual);
+            g_barStrip->AddVisual(d.visual, TRUE, nullptr);
+        }
+        SetBarCloseHover(-1);
+        for (size_t i = 0; i < g_cards.size(); i++) {
+            g_cards[i].hoverTarget = static_cast<int>(i) == g_cardPress ? 1.0f : 0.0f;
+        }
+        g_barHover = g_cardPress;
+    }
+
+    const int n = static_cast<int>(g_cardSlots.size());
+    float cx = static_cast<float>(x - g_cardGrabDx);
+    cx = std::max(static_cast<float>(g_cardSlots.front()),
+                  std::min(static_cast<float>(g_cardSlots.back()), cx));
+    d.drawX = cx;
+
+    const float pitch = static_cast<float>(BAR_CARD_W + BAR_GAP);
+    int drop = static_cast<int>(std::lround((cx - static_cast<float>(g_cardSlots.front())) / pitch));
+    drop = std::max(0, std::min(n - 1, drop));
+    if (drop != g_cardDrop) {
+        // The other cards make room at the slot it would land in.
+        g_cardDrop = drop;
+        int k = 0;
+        for (int i = 0; i < n; i++) {
+            if (i == g_cardPress) {
+                continue;
+            }
+            if (k == drop) {
+                k++;
+            }
+            g_cards[static_cast<size_t>(i)].x = g_cardSlots[static_cast<size_t>(k)];
+            k++;
+        }
+        d.x = g_cardSlots[static_cast<size_t>(drop)];
+    }
+
+    PlaceBarCard(d);
+    if (g_dcDevice) {
+        g_dcDevice->Commit();
+    }
+    StartBarTimer();
+}
+
+// The button was let go (or the press was cancelled).
+static void EndCardPress(bool cancel) {
+    if (g_cardPress < 0) {
+        return;
+    }
+    const int from = g_cardPress;
+    const int to = g_cardDrop;
+    const bool dragged = g_cardDrag;
+    g_cardPress = -1;  // before ReleaseCapture, which sends WM_CAPTURECHANGED
+    g_cardDrag = false;
+    if (GetCapture() == g_overlay) {
+        ReleaseCapture();
+    }
+
+    if (!dragged) {
+        if (!cancel) {
+            ActivateBarCard(from);
+        }
+        return;
+    }
+
+    const int n = static_cast<int>(g_cardSlots.size());
+    if (!cancel && to != from && to >= 0 && to < n &&
+        MoveDesktopTo(g_cards[static_cast<size_t>(from)].id, to)) {
+        // Same order as Windows now. Thumbnails still waiting to be created
+        // follow their card.
+        DesktopCard moved = std::move(g_cards[static_cast<size_t>(from)]);
+        g_cards.erase(g_cards.begin() + from);
+        g_cards.insert(g_cards.begin() + to, std::move(moved));
+        for (auto& job : g_barThumbQueue) {
+            int& p = job.first;
+            if (p == from) {
+                p = to;
+            } else if (from < to && p > from && p <= to) {
+                p--;
+            } else if (to < from && p >= to && p < from) {
+                p++;
+            }
+        }
+        // Desktops without a name of their own are numbered by position.
+        for (int i = 0; i < n; i++) {
+            DesktopCard& c = g_cards[static_cast<size_t>(i)];
+            const std::wstring name = std::wstring(DesktopWord()) + L" " + std::to_wstring(i + 1);
+            if (c.autoName && c.name != name && c.visual) {
+                c.name = name;
+                std::vector<uint32_t> px;
+                RenderDesktopCard(c, px);
+                if (IDCompositionSurface* surf = CreatePixelSurface(px, c.w, BAR_CARD_H)) {
+                    c.visual->SetContent(surf);
+                    surf->Release();
+                }
+            }
+        }
+        Wh_Log(L"Desktop bar: desktop %d moved to position %d.", from + 1, to + 1);
+    }
+
+    // Every card back to its slot, in the (new or old) order.
+    for (int i = 0; i < n; i++) {
+        g_cards[static_cast<size_t>(i)].x = g_cardSlots[static_cast<size_t>(i)];
+    }
+    for (auto& c : g_cards) {
+        c.hoverTarget = 0.0f;
+    }
+    g_barHover = -1;
+    if (g_dcDevice) {
+        g_dcDevice->Commit();
+    }
+    StartBarTimer();
+}
 
 static void HandleClick(int x, int y) {
     if (!g_open || g_dragging) {
@@ -5312,7 +5988,6 @@ static void HandleClick(int x, int y) {
 
     POINT pt{ x, y };
 
-#if USE_DCOMP_THUMBNAILS
     if (g_barBuilt && y >= g_barTop) {
         const int xi = HitBarClose(x, y);
         if (xi >= 0) {
@@ -5325,7 +6000,6 @@ static void HandleClick(int x, int y) {
         }
         return;  // the empty part of the bar does nothing
     }
-#endif
     int hit = -1;
     for (size_t i = 0; i < g_tiles.size(); i++) {
         if (TileContains(g_tiles[i], pt)) {
@@ -5361,8 +6035,21 @@ static void DrawEmptyMessage(HDC dc, HWND hwnd) {
     DeleteObject(font);
 }
 
+static void ToggleFromKeyboard();
+static void OnAltTabInMc(bool forward);
+static void OnAltReleaseInMc();
+
 static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     switch (msg) {
+        case WM_APP_WIN_TAB:
+            ToggleFromKeyboard();
+            return 0;
+        case WM_APP_ALT_TAB:
+            OnAltTabInMc(wp != 0);
+            return 0;
+        case WM_APP_ALT_COMMIT:
+            OnAltReleaseInMc();
+            return 0;
         case WM_PAINT: {
             PAINTSTRUCT ps;
             HDC dc = BeginPaint(hwnd, &ps);
@@ -5388,17 +6075,26 @@ static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             return 1;
         }
         case WM_NCACTIVATE:
-            if (ACTIVATE_PICK_EARLY) {
-                // Keep looking active (Mica on) while the picked window is
-                // already the foreground one.
-                return DefWindowProcW(hwnd, msg, TRUE, lp);
-            }
-            break;
+            // Keep looking active (Mica on) while the picked window is already
+            // the foreground one.
+            return DefWindowProcW(hwnd, msg, TRUE, lp);
         case WM_MOUSEACTIVATE:
-            return ACTIVATE_OVERLAY ? MA_ACTIVATE : MA_NOACTIVATE;
+            return MA_ACTIVATE;
         case WM_LBUTTONDOWN:
-            HandleClick(static_cast<short>(LOWORD(lp)),
-                        static_cast<short>(HIWORD(lp)));
+            if (!BeginCardPress(static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp)))) {
+                HandleClick(static_cast<short>(LOWORD(lp)),
+                            static_cast<short>(HIWORD(lp)));
+            }
+            return 0;
+        case WM_LBUTTONUP:
+            if (g_cardPress >= 0) {
+                EndCardPress(false);
+            }
+            return 0;
+        case WM_CAPTURECHANGED:
+            if (g_cardPress >= 0) {
+                EndCardPress(true);  // capture taken away: the drag is off
+            }
             return 0;
         case WM_MBUTTONUP:
             if (g_open && !g_dragging && MIDDLE_CLICK_CLOSE) {
@@ -5447,6 +6143,10 @@ static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
             }
             return 0;
         case WM_MOUSEMOVE:
+            if (g_cardPress >= 0) {
+                UpdateCardPress(static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp)));
+                return 0;
+            }
             if (g_open && !g_dragging) {
                 if (!g_trackingMouse) {
                     TRACKMOUSEEVENT tme{ sizeof(tme), TME_LEAVE, hwnd, 0 };
@@ -5457,6 +6157,15 @@ static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 // spurious WM_MOUSEMOVE doesn't override a keyboard selection.
                 const POINT mp{ static_cast<short>(LOWORD(lp)), static_cast<short>(HIWORD(lp)) };
                 if (std::abs(mp.x - g_lastMouse.x) + std::abs(mp.y - g_lastMouse.y) >= 3) {
+                    if (g_altCycleActive) {
+                        // Cycling with Alt+Tab: a nudge of the touchpad while typing
+                        // must not drop the selection; a real move hands over to the mouse.
+                        if (std::abs(mp.x - g_altMouseAnchor.x) +
+                                std::abs(mp.y - g_altMouseAnchor.y) < 16) {
+                            return 0;
+                        }
+                        g_altCycleActive = false;
+                    }
                     g_lastMouse = mp;
                     g_kbSel = -1;
                     UpdateHover(mp.x, mp.y);
@@ -5488,12 +6197,10 @@ static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
                 SendWinCtrlKey(VK_F4, 1);
                 return 0;
             }
-#if USE_DCOMP_THUMBNAILS
             if (wp == BAR_TIMER_ID) {
                 StepBarHover();
                 return 0;
             }
-#endif
             if (wp == CLOSE_POLL_TIMER_ID) {
                 PollPendingCloses();
                 return 0;
@@ -5515,43 +6222,49 @@ static LRESULT CALLBACK OverlayProc(HWND hwnd, UINT msg, WPARAM wp, LPARAM lp) {
     return DefWindowProcW(hwnd, msg, wp, lp);
 }
 
+// Undoes a failed CreateOverlayWindow(), so the next retry starts clean.
+static void FreeOverlayClass() {
+    if (g_classRegistered) {
+        UnregisterClassW(kOverlayClass, ModuleInstance());
+        g_classRegistered = false;
+    }
+    if (g_backdropBrush) {
+        DeleteObject(g_backdropBrush);
+        g_backdropBrush = nullptr;
+    }
+}
+
 static bool CreateOverlayWindow() {
     g_backdropBrush = CreateSolidBrush(BACKDROP_COLOR);
 
     WNDCLASSEXW wc{};
     wc.cbSize = sizeof(wc);
     wc.lpfnWndProc = OverlayProc;
-    wc.hInstance = GetModuleHandleW(nullptr);
+    wc.hInstance = ModuleInstance();
     wc.lpszClassName = kOverlayClass;
     wc.hCursor = LoadCursorW(nullptr, IDC_ARROW);
 
     if (!RegisterClassExW(&wc)) {
         Wh_Log(L"RegisterClassExW failed: %lu", GetLastError());
+        FreeOverlayClass();
         return false;
     }
     g_classRegistered = true;
 
-    DWORD exStyle = WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT;
-    if (FADE_WITH_ALPHA) {
-        exStyle |= WS_EX_LAYERED;
-    }
-    if (!ACTIVATE_OVERLAY) {
-        exStyle |= WS_EX_NOACTIVATE;
-    }
-
+    // Layered: the overlay fades in with its alpha. Click-through until open.
     g_overlay = CreateWindowExW(
-        exStyle, kOverlayClass, L"", WS_POPUP,
+        WS_EX_TOPMOST | WS_EX_TOOLWINDOW | WS_EX_TRANSPARENT | WS_EX_LAYERED,
+        kOverlayClass, L"", WS_POPUP,
         0, 0, 100, 100,
         nullptr, nullptr, wc.hInstance, nullptr);
 
     if (!g_overlay) {
         Wh_Log(L"CreateWindowExW failed: %lu", GetLastError());
+        FreeOverlayClass();
         return false;
     }
 
-    if (FADE_WITH_ALPHA) {
-        SetLayeredWindowAttributes(g_overlay, 0, 0, LWA_ALPHA);
-    }
+    SetLayeredWindowAttributes(g_overlay, 0, 0, LWA_ALPHA);
 
     ApplyBackdropStyle(false);
 
@@ -5570,9 +6283,7 @@ static bool CreateOverlayWindow() {
             0, 0, 1, 1, nullptr, nullptr, wc.hInstance, nullptr);
     }
 
-#if USE_DCOMP_THUMBNAILS
     InitDComp();  // on failure the legacy thumbnails are used
-#endif
 
     return true;
 }
@@ -5580,36 +6291,27 @@ static bool CreateOverlayWindow() {
 static void DestroyOverlayWindow() {
     HideOverlay();
     FlushPendingCloses();
-    RestoreWindowAnimations();
     RestoreTaskbars();
     StopClockThread();
 
     FreeBackground();
 
-#if USE_DCOMP_THUMBNAILS
     ShutdownDComp();
-#endif
 
     if (g_highlight) {
         DestroyWindow(g_highlight);
         g_highlight = nullptr;
     }
     if (g_hlClassRegistered) {
-        UnregisterClassW(kHighlightClass, GetModuleHandleW(nullptr));
+        UnregisterClassW(kHighlightClass, ModuleInstance());
         g_hlClassRegistered = false;
     }
     if (g_overlay) {
         DestroyWindow(g_overlay);
         g_overlay = nullptr;
+        g_barTimerSet = false;
     }
-    if (g_classRegistered) {
-        UnregisterClassW(kOverlayClass, GetModuleHandleW(nullptr));
-        g_classRegistered = false;
-    }
-    if (g_backdropBrush) {
-        DeleteObject(g_backdropBrush);
-        g_backdropBrush = nullptr;
-    }
+    FreeOverlayClass();
 }
 
 // ---------------------------------------------------------------------------
@@ -5636,14 +6338,15 @@ static void OnGestureDelta(float deltaY) {
         SetClickThrough(true);
     }
 
-    g_dragAccumY += INVERT_Y ? -deltaY : deltaY;
+    // Fingers moving up => Y decreases => progress increases (the other way
+    // round in App Exposé, which opens with a swipe down).
+    g_dragAccumY += ((INVERT_Y != g_exposeMode) ? -deltaY : deltaY);
 
-    // Fingers moving up => Y decreases => progress increases.
     const float raw = g_dragBase - g_dragAccumY / GESTURE_DISTANCE;
     const float p = RawToProgress(raw);
 
     // Finger velocity from the unclamped value, sampled at most every 4 ms
-    // (the three fingers report separately, so events arrive in bursts) and
+    // (each finger reports separately, so events arrive in bursts) and
     // lightly smoothed. Tracking itself is NOT filtered, only this estimate.
     {
         const double now = NowMs();
@@ -5690,7 +6393,7 @@ static void OnGestureEnd() {
     g_open = (target >= 1.0f);
     SetClickThrough(!g_open);
 
-    if (target <= 0.0f && ACTIVATE_PICK_EARLY && g_prevForeground &&
+    if (target <= 0.0f && g_prevForeground &&
         IsWindow(g_prevForeground) && !IsIconic(g_prevForeground)) {
         // Cancelling: bring back the window you were in while it closes.
         SetForegroundWindow(g_prevForeground);
@@ -5702,47 +6405,6 @@ static void OnGestureEnd() {
 // ---------------------------------------------------------------------------
 // Pointer tracking
 // ---------------------------------------------------------------------------
-
-void LogPointerEvent(
-    const wchar_t* eventName,
-    PointerEventArgs const& args
-) {
-    auto point = args.CurrentPoint();
-
-    auto pos = point.Position();
-    auto raw = point.RawPosition();
-
-    Wh_Log(
-        L"%s | ID=%u | Pos=(%.2f, %.2f) | Raw=(%.2f, %.2f) | Contact=%d | Timestamp=%llu",
-        eventName,
-        point.PointerId(),
-        pos.X,
-        pos.Y,
-        raw.X,
-        raw.Y,
-        point.IsInContact(),
-        point.Timestamp()
-    );
-
-    auto physical = point.try_as<IPointerPointPhysicalPosition>();
-
-    if (physical) {
-        if (physical.IsPhysicalPositionSupported()) {
-            auto physicalPos = physical.PhysicalPosition();
-
-            Wh_Log(
-                L"  PhysicalPosition | ID=%u | Pos=(%.2f, %.2f)",
-                point.PointerId(),
-                physicalPos.X,
-                physicalPos.Y
-            );
-        } else {
-            Wh_Log(L"  PhysicalPosition is not supported.");
-        }
-    } else {
-        Wh_Log(L"  IPointerPointPhysicalPosition interface unavailable.");
-    }
-}
 
 static TrackedPointer* FindPointer(uint32_t id) {
     for (auto& pointer : g_pointers) {
@@ -5769,7 +6431,7 @@ static TrackedPointer* AddPointer(uint32_t id) {
 }
 
 // ---------------------------------------------------------------------------
-// Direction of a three-finger swipe: vertical = Mission Control, horizontal =
+// Direction of a swipe: vertical = Mission Control or App Exposé, horizontal =
 // Alt+Tab (emulated, see ENABLE_ALT_TAB_SWIPE).
 // ---------------------------------------------------------------------------
 
@@ -5780,6 +6442,10 @@ static float g_axisAccY = 0.0f;
 static bool g_altHeld = false;   // we are holding Alt down
 static bool g_altSwipe = false;  // this horizontal swipe is driving Alt+Tab
 static float g_altAccX = 0.0f;   // travel since the last Alt+Tab step
+static bool g_minimizeSwipe = false;  // this vertical swipe is a "minimize all windows" one
+static bool g_restoreSwipe = false;   // ...or the swipe up that brings those windows back
+static float g_minimizeAccY = 0.0f;   // downward travel of that swipe
+static bool g_minimizeDone = false;   // it already fired, once per swipe
 
 static void SendAltTabStep(bool forward) {
     INPUT in[5] = {};
@@ -5829,6 +6495,10 @@ static void EndSwipe() {
     g_axis = SwipeAxis::Unknown;
     g_axisAccX = 0.0f;
     g_axisAccY = 0.0f;
+    g_minimizeSwipe = false;
+    g_restoreSwipe = false;
+    g_minimizeAccY = 0.0f;
+    g_minimizeDone = false;
 }
 
 // A game, a fullscreen video or a presentation has the screen. Mission Control
@@ -5876,8 +6546,121 @@ static bool IsFullscreenAppActive() {
            wr.right >= mi.rcMonitor.right && wr.bottom >= mi.rcMonitor.bottom;
 }
 
+// Swipe down with "Minimize all windows": minimizes what Mission Control would
+// have listed (same filters, current virtual desktop), on every monitor.
+static std::vector<HWND> ListAllWindows() {
+    const int vx = GetSystemMetrics(SM_XVIRTUALSCREEN);
+    const int vy = GetSystemMetrics(SM_YVIRTUALSCREEN);
+    EnumCtx ctx;
+    ctx.noCap = true;  // all of them, not only the first MAX_TILES
+    ctx.work = RECT{ vx, vy, vx + GetSystemMetrics(SM_CXVIRTUALSCREEN),
+                     vy + GetSystemMetrics(SM_CYVIRTUALSCREEN) };
+    EnumWindows(EnumProc, reinterpret_cast<LPARAM>(&ctx));
+    return ctx.hwnds;  // top to bottom
+}
+
+static void MinimizeAllWindows() {
+    const std::vector<HWND> list = ListAllWindows();
+
+    // Minimizing from the bottom up keeps Windows from activating (and animating)
+    // the next window after each one. The order is kept to bring them back.
+    std::vector<HWND> minimized;
+    for (auto it = list.rbegin(); it != list.rend(); ++it) {
+        HWND h = *it;
+        if (IsIconic(h) || !(GetWindowLongPtrW(h, GWL_STYLE) & WS_MINIMIZEBOX)) {
+            continue;
+        }
+        ShowWindowAsync(h, SW_MINIMIZE);
+        minimized.push_back(h);
+    }
+
+    // The undo of an earlier swipe survives while all of it is still minimized on this
+    // desktop: a second swipe down in a row (nothing left to minimize), or after opening
+    // one more window, must not lose it. If it went stale, this swipe starts a new one.
+    if (!minimized.empty()) {
+        IVirtualDesktopManager* vdm = GetVdm();
+        std::vector<HWND> kept;
+        for (HWND h : g_swipeMinimized) {
+            if (!IsWindow(h)) {
+                continue;
+            }
+            BOOL onThis = TRUE;
+            if (!IsIconic(h) ||
+                (vdm && SUCCEEDED(vdm->IsWindowOnCurrentVirtualDesktop(h, &onThis)) && !onThis)) {
+                kept.clear();
+                break;
+            }
+            kept.push_back(h);
+        }
+        kept.insert(kept.end(), minimized.begin(), minimized.end());
+        g_swipeMinimized = std::move(kept);
+    }
+    Wh_Log(L"Swipe down: minimizing %d window(s).", static_cast<int>(minimized.size()));
+}
+
+// The undo of a minimize-all swipe, like Windows' own Show desktop: it only
+// stands while every window that swipe minimized is still there and still
+// minimized, and nothing else has come on screen since.
+static bool CanRestoreMinimized() {
+    g_swipeMinimized.erase(std::remove_if(g_swipeMinimized.begin(), g_swipeMinimized.end(),
+                                          [](HWND h) { return !IsWindow(h); }),
+                           g_swipeMinimized.end());
+    if (g_swipeMinimized.empty()) {
+        return false;
+    }
+    IVirtualDesktopManager* vdm = GetVdm();
+    for (HWND h : g_swipeMinimized) {
+        if (!IsIconic(h)) {  // one was brought back by hand: the undo is stale
+            g_swipeMinimized.clear();
+            return false;
+        }
+        BOOL onThis = TRUE;
+        if (vdm && SUCCEEDED(vdm->IsWindowOnCurrentVirtualDesktop(h, &onThis)) && !onThis) {
+            return false;  // you're on another desktop: keep the list for when you're back
+        }
+    }
+    for (HWND h : ListAllWindows()) {
+        // Windows without a minimize button were never minimized, so they don't count.
+        if (!IsIconic(h) && (GetWindowLongPtrW(h, GWL_STYLE) & WS_MINIMIZEBOX)) {
+            g_swipeMinimized.clear();  // something else is on screen now
+            return false;
+        }
+    }
+    return true;
+}
+
+static void RestoreMinimizedWindows() {
+    if (!CanRestoreMinimized()) {
+        return;
+    }
+    // Bottom to top, as they were minimized: the window that was on top ends up
+    // on top, and active.
+    for (HWND h : g_swipeMinimized) {
+        ShowWindowAsync(h, SW_RESTORE);
+    }
+    Wh_Log(L"Swipe up: bringing back %d window(s).", static_cast<int>(g_swipeMinimized.size()));
+    g_swipeMinimized.clear();
+}
+
+static void OnMinimizeDelta(float dy) {
+    const float down = INVERT_Y ? -dy : dy;  // positive = the fingers go down
+    g_minimizeAccY += g_restoreSwipe ? -down : down;
+    if (!g_minimizeDone && g_minimizeAccY >= GESTURE_DISTANCE * MINIMIZE_TRIGGER_FRACTION) {
+        g_minimizeDone = true;
+        if (g_restoreSwipe) {
+            RestoreMinimizedWindows();
+        } else {
+            MinimizeAllWindows();
+        }
+    }
+}
+
 static void OnSwipeDelta(float dx, float dy) {
     if (g_axis == SwipeAxis::Vertical) {
+        if (g_minimizeSwipe) {
+            OnMinimizeDelta(dy);
+            return;
+        }
         OnGestureDelta(dy);
         return;
     }
@@ -5910,6 +6693,23 @@ static void OnSwipeDelta(float dx, float dy) {
             return;
         }
         g_axis = SwipeAxis::Vertical;
+        if (!g_visible) {
+            // Closed: up opens Mission Control, down opens App Exposé or
+            // minimizes the windows, depending on the setting.
+            const bool down = (INVERT_Y ? -g_axisAccY : g_axisAccY) > 0.0f;
+            if (SWIPE_DOWN_MODE == 2 && (down || CanRestoreMinimized())) {
+                // A one-shot action instead of the interactive animation: down
+                // minimizes, up (while that left windows minimized) brings them back.
+                g_minimizeSwipe = true;
+                g_restoreSwipe = !down;
+                g_minimizeAccY = 0.0f;
+                g_minimizeDone = false;
+                OnMinimizeDelta(g_axisAccY);  // replay what was collected
+                return;
+            }
+            g_exposeMode = down;
+            g_exposeAppOnly = down && SWIPE_DOWN_MODE == 0;
+        }
         OnGestureDelta(g_axisAccY);  // replay what was collected
         return;
     }
@@ -5926,7 +6726,7 @@ static void OnSwipeDelta(float dx, float dy) {
 static void UpdateCentroid() {
     if (!g_eventsSeen) {
         g_eventsSeen = true;
-        BootLog(L"Touchpad events are arriving (first one since the controller was created).");
+        Wh_Log(L"Touchpad events are arriving (first one since the controller was created).");
     }
 
     float x = 0.0f;
@@ -5941,26 +6741,18 @@ static void UpdateCentroid() {
         }
     }
 
-    if (count != 3) {
+    if (count != FINGER_COUNT) {
         g_hasPreviousCentroid = false;
         EndSwipe();
         OnGestureEnd();
         return;
     }
 
-    x /= 3.0f;
-    y /= 3.0f;
+    x /= static_cast<float>(count);
+    y /= static_cast<float>(count);
 
     if (g_hasPreviousCentroid) {
-        float deltaX = x - g_previousCentroidX;
-        float deltaY = y - g_previousCentroidY;
-
-        if (VERBOSE_LOGGING) {
-            Wh_Log(L"Centroid | Pos=(%.2f, %.2f) | Delta=(%.2f, %.2f)",
-                x, y, deltaX, deltaY);
-        }
-
-        OnSwipeDelta(deltaX, deltaY);
+        OnSwipeDelta(x - g_previousCentroidX, y - g_previousCentroidY);
     }
 
     g_previousCentroidX = x;
@@ -5972,14 +6764,15 @@ static void OnPointerPressed(
     TouchpadGesturesController const&,
     PointerEventArgs const& args
 ) {
-    if (VERBOSE_LOGGING) {
-        LogPointerEvent(L"PointerPressed", args);
-    }
-
     auto point = args.CurrentPoint();
     auto physical = point.try_as<IPointerPointPhysicalPosition>();
 
     if (!physical || !physical.IsPhysicalPositionSupported()) {
+        static bool logged = false;
+        if (!logged) {
+            logged = true;
+            Wh_Log(L"The touchpad doesn't report physical positions: gestures ignored.");
+        }
         return;
     }
 
@@ -6000,14 +6793,6 @@ void OnPointerMoved(
     TouchpadGesturesController const&,
     PointerEventArgs const& args
 ) {
-    if (VERBOSE_LOGGING) {
-        LONG count = InterlockedIncrement(&g_moveCount);
-        if (count <= 30 || count % 100 == 0) {
-            Wh_Log(L"PointerMoved callback #%ld", count);
-        }
-        LogPointerEvent(L"PointerMoved", args);
-    }
-
     auto point = args.CurrentPoint();
     auto physical = point.try_as<IPointerPointPhysicalPosition>();
 
@@ -6032,10 +6817,6 @@ void OnPointerReleased(
     TouchpadGesturesController const&,
     PointerEventArgs const& args
 ) {
-    if (VERBOSE_LOGGING) {
-        LogPointerEvent(L"PointerReleased", args);
-    }
-
     auto point = args.CurrentPoint();
     auto* pointer = FindPointer(point.PointerId());
 
@@ -6043,25 +6824,11 @@ void OnPointerReleased(
         return;
     }
 
-    if (VERBOSE_LOGGING) {
-        Wh_Log(L"Removing pointer ID=%u", pointer->id);
-    }
-
     pointer->active = false;
     g_hasPreviousCentroid = false;
 
-    // Fewer than three fingers now: ends the gesture and commits/cancels.
+    // Fewer fingers now: ends the gesture and commits/cancels.
     UpdateCentroid();
-}
-
-void OnGlobalAction(
-    TouchpadGesturesController const&,
-    TouchpadGlobalActionEventArgs const& args
-) {
-    Wh_Log(
-        L"GlobalActionPerformed | Action=%d",
-        static_cast<int>(args.Action())
-    );
 }
 
 void CleanupController() {
@@ -6089,11 +6856,6 @@ void CleanupController() {
             g_releasedRegistered = false;
         }
 
-        if (g_actionRegistered) {
-            g_controller.GlobalActionPerformed(g_actionToken);
-            g_actionRegistered = false;
-        }
-
         if (g_previousStateSaved) {
             g_controller.SupportedGestures(g_previousGestures);
             g_controller.Enabled(g_previousEnabled);
@@ -6109,11 +6871,8 @@ void CleanupController() {
 static TouchpadGlobalGestureKinds DesiredGestures() {
     // Manipulations only: we drive the animation ourselves, so Windows
     // should not also fire its own discrete Task View action.
-    auto gestures = TouchpadGlobalGestureKinds::ThreeFingerManipulations;
-    if (KEEP_NATIVE_ACTIONS) {
-        gestures = gestures | TouchpadGlobalGestureKinds::ThreeFingerActions;
-    }
-    return gestures;
+    return FINGER_COUNT == 4 ? TouchpadGlobalGestureKinds::FourFingerManipulations
+                             : TouchpadGlobalGestureKinds::ThreeFingerManipulations;
 }
 
 // One attempt at taking over the touchpad gestures. Returns false (after
@@ -6146,15 +6905,12 @@ static bool TryEnableController() {
         g_releasedToken = g_controller.PointerReleased(OnPointerReleased);
         g_releasedRegistered = true;
 
-        g_actionToken = g_controller.GlobalActionPerformed(OnGlobalAction);
-        g_actionRegistered = true;
-
         g_controller.SupportedGestures(DesiredGestures());
         g_controller.Enabled(true);
         g_eventsSeen = false;
         return true;
     } catch (winrt::hresult_error const& e) {
-        BootLog(L"Controller setup failed: 0x%08X", static_cast<unsigned>(e.code()));
+        Wh_Log(L"Controller setup failed: 0x%08X", static_cast<unsigned>(e.code()));
     } catch (...) {
         Wh_Log(L"Controller setup failed (unknown error).");
     }
@@ -6191,7 +6947,230 @@ static void EnsureControllerConfig(bool& controllerReady) {
     }
 }
 
+// ---------------------------------------------------------------------------
+// Win+Tab: a low-level keyboard hook on its own thread (it only waits for keys,
+// so it always answers within Windows' hook timeout even while the UI thread
+// is busy rendering) swallows Win+Tab and asks the UI thread to open or close.
+// ---------------------------------------------------------------------------
+
+
+static HANDLE g_hookThread = nullptr;
+static DWORD g_hookThreadId = 0;
+static HANDLE g_hookReady = nullptr;
+static bool g_hookOk = false;  // set by the hook thread before it signals g_hookReady
+static bool g_winTabDown = false;  // hook thread only
+static bool g_altTabDown = false;  // hook thread only: a swallowed Alt+Tab press is down
+static bool g_altCycling = false;  // hook thread only: Alt+Tab cycled Mission Control, Alt still held
+
+static bool KeyHeld(int vk) {
+    return (GetAsyncKeyState(vk) & 0x8000) != 0;
+}
+
+// An unassigned key pressed while Win is down: Windows then treats Win as part
+// of a shortcut, and doesn't open Start when Win is let go.
+static void MaskWinKey() {
+    INPUT in[2] = {};
+    in[0].type = INPUT_KEYBOARD;
+    in[0].ki.wVk = 0xE8;
+    in[1] = in[0];
+    in[1].ki.dwFlags = KEYEVENTF_KEYUP;
+    SendInput(2, in, sizeof(INPUT));
+}
+
+// The overlay window exists whenever the hook runs: the hook starts after
+// CreateOverlayWindow and stops before DestroyOverlayWindow.
+static void PostToOverlay(UINT msg, WPARAM wp) {
+    HWND overlay = g_overlay;
+    if (overlay) {
+        PostMessageW(overlay, msg, wp, 0);
+    }
+}
+
+static LRESULT CALLBACK WinTabHookProc(int code, WPARAM wp, LPARAM lp) {
+    if (code == HC_ACTION) {
+        const auto* k = reinterpret_cast<const KBDLLHOOKSTRUCT*>(lp);
+        // Alt let go after cycling with Alt+Tab: pick the selected window. The
+        // Alt release itself goes through (the masked press can't open a menu).
+        if (g_altCycling && !(k->flags & LLKHF_INJECTED) &&
+            (k->vkCode == VK_LMENU || k->vkCode == VK_RMENU || k->vkCode == VK_MENU) &&
+            (wp == WM_KEYUP || wp == WM_SYSKEYUP)) {
+            g_altCycling = false;
+            PostToOverlay(WM_APP_ALT_COMMIT, 0);
+        }
+        if (k->vkCode == VK_TAB && !(k->flags & LLKHF_INJECTED)) {
+            const bool down = (wp == WM_KEYDOWN || wp == WM_SYSKEYDOWN);
+            if (down) {
+                if (REPLACE_WIN_TAB && (KeyHeld(VK_LWIN) || KeyHeld(VK_RWIN)) &&
+                    !KeyHeld(VK_CONTROL) && !KeyHeld(VK_MENU)) {
+                    if (!g_winTabDown) {  // the key repeat doesn't toggle again
+                        g_winTabDown = true;
+                        MaskWinKey();
+                        PostToOverlay(WM_APP_WIN_TAB, 0);
+                    }
+                    return 1;
+                }
+                // Alt+Tab (and Ctrl+Alt+Tab) while Mission Control is on screen:
+                // Windows' switcher on top of the overlay breaks it, so it never
+                // gets the key. Our own Alt+Tab (the left/right swipe) is
+                // injected, so it never gets here.
+                if (ALT_TAB_MC_MODE != 0 && g_visible && (k->flags & LLKHF_ALTDOWN)) {
+                    if (!g_altTabDown) {
+                        g_altTabDown = true;
+                        MaskWinKey();  // so letting go of Alt alone doesn't light up a menu bar
+                    }
+                    if (ALT_TAB_MC_MODE == 2) {
+                        g_altCycling = true;  // the key repeat keeps cycling, like Windows
+                        PostToOverlay(WM_APP_ALT_TAB, KeyHeld(VK_SHIFT) ? 0 : 1);
+                    }
+                    return 1;
+                }
+            } else if (g_winTabDown) {
+                g_winTabDown = false;
+                return 1;  // the Tab release of a swallowed press
+            } else if (g_altTabDown) {
+                g_altTabDown = false;
+                return 1;  // same for a swallowed Alt+Tab
+            }
+        }
+    }
+    return CallNextHookEx(nullptr, code, wp, lp);
+}
+
+static DWORD WINAPI HookThreadProc(void*) {
+    MSG msg{};
+    PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
+    HHOOK hook = SetWindowsHookExW(WH_KEYBOARD_LL, WinTabHookProc, ModuleInstance(), 0);
+    g_hookOk = hook != nullptr;
+    SetEvent(g_hookReady);
+    if (!hook) {
+        Wh_Log(L"Win+Tab: SetWindowsHookExW failed: %lu", GetLastError());
+        return 0;
+    }
+    while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+        DispatchMessageW(&msg);
+    }
+    UnhookWindowsHookEx(hook);
+    return 0;
+}
+
+static void StopWinTabHook() {
+    if (!g_hookThread) {
+        return;
+    }
+    PostThreadMessageW(g_hookThreadId, WM_QUIT, 0, 0);
+    WaitForSingleObject(g_hookThread, INFINITE);
+    CloseHandle(g_hookThread);
+    g_hookThread = nullptr;
+    g_hookThreadId = 0;
+}
+
+// Starts or stops the hook to match the setting.
+static void UpdateWinTabHook() {
+    if (!REPLACE_WIN_TAB && ALT_TAB_MC_MODE == 0) {  // the hook serves both
+        StopWinTabHook();
+        return;
+    }
+    if (g_hookThread) {
+        if (WaitForSingleObject(g_hookThread, 0) != WAIT_OBJECT_0) {
+            return;  // running
+        }
+        // It ended on its own (the hook couldn't be installed): clean up and try again.
+        CloseHandle(g_hookThread);
+        g_hookThread = nullptr;
+        g_hookThreadId = 0;
+    }
+    if (!g_hookReady) {
+        g_hookReady = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    }
+    if (!g_hookReady) {
+        return;
+    }
+    ResetEvent(g_hookReady);
+    g_hookThread = CreateThread(nullptr, 0, HookThreadProc, nullptr, 0, &g_hookThreadId);
+    if (!g_hookThread) {
+        Wh_Log(L"Win+Tab: could not start the hook thread.");
+        return;
+    }
+    // Until its message queue exists (so StopWinTabHook's WM_QUIT can't get lost).
+    HANDLE waits[2] = { g_hookReady, g_hookThread };
+    WaitForMultipleObjects(2, waits, FALSE, INFINITE);
+    if (!g_hookOk) {
+        return;  // the thread already logged why; the next settings change retries
+    }
+    Wh_Log(L"Keyboard hook running (Win+Tab opens Mission Control: %s, Alt+Tab inside it: %s).",
+           REPLACE_WIN_TAB ? L"yes" : L"no",
+           ALT_TAB_MC_MODE == 2 ? L"cycles" : (ALT_TAB_MC_MODE == 1 ? L"ignored" : L"Windows"));
+}
+
+// Win+Tab: opens Mission Control with the same spring as a released swipe, or
+// closes it if it is open.
+static void ToggleFromKeyboard() {
+    if (!g_overlay || g_dragging) {
+        return;
+    }
+    if (g_visible) {
+        if (g_open) {
+            BeginClose(-1);
+        }
+        return;  // already on its way in or out
+    }
+
+    g_exposeMode = false;
+    g_closeTarget = nullptr;
+    g_restoreIssued = false;
+    g_progress = 0.0f;
+    g_openFromKeyboard = true;
+    ShowOverlay();
+    g_open = true;
+    SetClickThrough(false);
+    StartSpring(1.0f, 0.0f);
+}
+
+// Alt+Tab inside Mission Control / App Exposé: moves the selection like Tab does
+// (Shift = backwards). As in Windows' own switcher the first press goes to the
+// window after the one you were in. The tiles follow z-order but always-on-top
+// windows sort first, so that window's tile is looked up, not assumed to be 0.
+static void OnAltTabInMc(bool forward) {
+    if (!g_visible || !g_open || g_dragging) {
+        return;
+    }
+    const int n = static_cast<int>(g_tiles.size());
+    if (n == 0) {
+        return;
+    }
+    if (!g_altCycleActive) {
+        g_altCycleActive = true;  // small mouse nudges no longer cancel the selection
+        POINT p{};
+        GetCursorPos(&p);
+        ScreenToClient(g_overlay, &p);
+        g_altMouseAnchor = p;
+    }
+    if (g_kbSel < 0 || g_kbSel >= n) {
+        const int cur = std::max(0, PrevForegroundTile());
+        SelectTile((cur + (forward ? 1 : -1) + n) % n);
+        return;
+    }
+    CycleSelection(forward ? 1 : -1);
+}
+
+// Alt let go after cycling: pick the selected window, like Windows' switcher.
+static void OnAltReleaseInMc() {
+    g_altCycleActive = false;
+    if (!g_visible || !g_open || g_dragging || g_kbSel < 0) {
+        return;
+    }
+    BeginClose(g_kbSel);
+}
+
+static void LoadSettings();
+
 DWORD WINAPI TouchpadThreadProc(void*) {
+    // This thread's message queue comes first, so the WM_QUIT of Wh_ModUninit
+    // and the settings messages can always reach it. Wh_ModInit waits for this.
+    MSG msg{};
+    PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
+    SetEvent(g_readyEvent);
+
     bool apartmentInitialized = false;
 
     try {
@@ -6210,17 +7189,7 @@ DWORD WINAPI TouchpadThreadProc(void*) {
             setDpiCtx(reinterpret_cast<HANDLE>(-4));  // PER_MONITOR_AWARE_V2
         }
 
-        // Create this thread's message queue.
-        MSG msg{};
-        PeekMessageW(
-            &msg,
-            nullptr,
-            WM_USER,
-            WM_USER,
-            PM_NOREMOVE
-        );
-
-        BootLog(L"Touchpad thread started (thread %lu, system uptime %llu s).",
+        Wh_Log(L"Touchpad thread started (thread %lu, system uptime %llu s).",
                 GetCurrentThreadId(), static_cast<unsigned long long>(GetTickCount64() / 1000ULL));
 
         bool overlayReady = false;
@@ -6232,10 +7201,23 @@ DWORD WINAPI TouchpadThreadProc(void*) {
         double shellSeenMs = 0.0;
         bool shellSeen = false;
         bool shellRefreshed = false;
+        bool quitting = false;
 
         // The overlay lives on this same thread, so gesture callbacks and
         // window messages never race each other.
         auto attempt = [&]() {
+            if (quitting) {
+                return;
+            }
+            // Explorer was still starting when the mod was loaded: once the
+            // shell window exists, it must be this process's (see Wh_ModInit).
+            if (ShellWindowOwner() < 0) {
+                Wh_Log(L"The shell runs in another explorer.exe process: stopping here.");
+                quitting = true;
+                PostQuitMessage(0);
+                return;
+            }
+
             // Safety net: the real taskbar must never stay hidden.
             if (!g_visible && !g_taskbars.empty()) {
                 RestoreTaskbars();
@@ -6248,16 +7230,17 @@ DWORD WINAPI TouchpadThreadProc(void*) {
                     {
                         // The size of the icons depends on the monitor: use the
                         // primary one for the pre-warm.
+                        HMONITOR primary = MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY);
                         MONITORINFO scaleMi{};
                         scaleMi.cbSize = sizeof(scaleMi);
-                        if (GetMonitorInfoW(MonitorFromPoint(POINT{ 0, 0 }, MONITOR_DEFAULTTOPRIMARY),
-                                            &scaleMi)) {
-                            UpdateUiScale(scaleMi.rcMonitor.bottom - scaleMi.rcMonitor.top);
+                        if (GetMonitorInfoW(primary, &scaleMi)) {
+                            UpdateUiScale(scaleMi.rcMonitor.right - scaleMi.rcMonitor.left,
+                                          scaleMi.rcMonitor.bottom - scaleMi.rcMonitor.top,
+                                          MonitorDpi(primary));
                         }
                     }
-#if USE_DCOMP_THUMBNAILS
                     StartPrewarm();  // icons for the open windows, off the UI thread
-#endif
+                    UpdateWinTabHook();
 
                     // Pre-render the blurred wallpaper so the first gesture doesn't hitch.
                     if (BACKDROP_MODE == 2) {
@@ -6278,7 +7261,7 @@ DWORD WINAPI TouchpadThreadProc(void*) {
                 controllerReady = TryEnableController();
                 if (controllerReady) {
                     failedAttempts = 0;
-                    BootLog(L"Touchpad controller enabled successfully.");
+                    Wh_Log(L"Touchpad controller enabled successfully.");
                 }
             } else if (controllerReady) {
                 EnsureControllerConfig(controllerReady);
@@ -6295,7 +7278,7 @@ DWORD WINAPI TouchpadThreadProc(void*) {
                     if (!shellSeen && FindWindowW(L"Shell_TrayWnd", nullptr)) {
                         shellSeen = true;
                         shellSeenMs = now;
-                        BootLog(L"The taskbar is up; the controller will be refreshed in 3 s.");
+                        Wh_Log(L"The taskbar is up; the controller will be refreshed in 3 s.");
                     }
 
                     bool refresh = false;
@@ -6308,7 +7291,7 @@ DWORD WINAPI TouchpadThreadProc(void*) {
 
                     if (refresh) {
                         lastRefreshMs = now;
-                        BootLog(L"Refreshing the touchpad controller (no events seen yet).");
+                        Wh_Log(L"Refreshing the touchpad controller (no events seen yet).");
                         CleanupController();
                         g_previousStateSaved = false;
                         controllerReady = TryEnableController();
@@ -6317,11 +7300,19 @@ DWORD WINAPI TouchpadThreadProc(void*) {
             }
 
             // After a minute of failures, back off so a machine that really
-            // doesn't support this doesn't retry (and log) every 2 s forever.
-            if (!(overlayReady && controllerReady) && ++failedAttempts == 30 && tick) {
-                KillTimer(nullptr, tick);
-                tick = SetTimer(nullptr, 0, 10000, nullptr);
-                Wh_Log(L"Still not ready; now retrying every 10 s.");
+            // doesn't support this doesn't retry (and log) every 2 s, and after
+            // a few more minutes stop trying.
+            if (!(overlayReady && controllerReady) && tick) {
+                ++failedAttempts;
+                if (failedAttempts == 30) {
+                    KillTimer(nullptr, tick);
+                    tick = SetTimer(nullptr, 0, 10000, nullptr);
+                    Wh_Log(L"Still not ready; now retrying every 10 s.");
+                } else if (failedAttempts == 30 + SLOW_RETRY_ATTEMPTS) {
+                    KillTimer(nullptr, tick);
+                    tick = 0;
+                    Wh_Log(L"Still not ready after several minutes; giving up until the mod is reloaded.");
+                }
             }
         };
 
@@ -6330,13 +7321,13 @@ DWORD WINAPI TouchpadThreadProc(void*) {
             try {
                 attempt();
             } catch (...) {
-                BootLog(L"An initialization attempt threw an exception; will retry.");
+                Wh_Log(L"An initialization attempt threw an exception; will retry.");
             }
         };
 
         safeAttempt();
         if (!(overlayReady && controllerReady)) {
-            BootLog(L"Not ready at startup; retrying every %u ms.", INIT_RETRY_MS);
+            Wh_Log(L"Not ready at startup; retrying every %u ms.", INIT_RETRY_MS);
         }
 
         // Thread timer: retries until everything is up, then keeps checking.
@@ -6353,9 +7344,22 @@ DWORD WINAPI TouchpadThreadProc(void*) {
                 break;
             }
 
-            if (msg.message == WM_TIMER && msg.hwnd == nullptr && msg.wParam == tick) {
-                safeAttempt();
-                continue;
+            if (msg.hwnd == nullptr) {
+                if (msg.message == WM_TIMER && tick && msg.wParam == tick) {
+                    safeAttempt();
+                    continue;
+                }
+                if (msg.message == WM_APP_SETTINGS) {
+                    LoadSettings();
+                    if (overlayReady) {
+                        UpdateWinTabHook();
+                    }
+                    if (controllerReady) {
+                        EnsureControllerConfig(controllerReady);  // finger count
+                    }
+                    Wh_Log(L"Settings reloaded.");
+                    continue;
+                }
             }
 
             TranslateMessage(&msg);
@@ -6366,20 +7370,24 @@ DWORD WINAPI TouchpadThreadProc(void*) {
             KillTimer(nullptr, tick);
         }
     } catch (winrt::hresult_error const& e) {
-        BootLog(
+        Wh_Log(
             L"Touchpad thread failed: 0x%08X",
             static_cast<unsigned>(e.code())
         );
     } catch (...) {
-        BootLog(L"Unknown exception in touchpad thread.");
+        Wh_Log(L"Unknown exception in touchpad thread.");
     }
 
+    StopWinTabHook();
+    if (g_hookReady) {
+        CloseHandle(g_hookReady);
+        g_hookReady = nullptr;
+    }
     CleanupController();
 
-#if USE_DCOMP_THUMBNAILS
     StopPrewarm();
-#endif
     DestroyOverlayWindow();
+    ShutdownTextRendering();
 
     if (apartmentInitialized) {
         winrt::uninit_apartment();
@@ -6399,27 +7407,23 @@ static int SettingInt(PCWSTR name, int lo, int hi) {
 static void LoadSettings() {
     BACKDROP_MODE = 0;
     BACKDROP_TYPE = 2;  // Mica
-    if (PCWSTR bd = Wh_GetStringSetting(L"backdrop")) {
-        if (!wcscmp(bd, L"micaAlt")) {
-            BACKDROP_TYPE = 4;
-        } else if (!wcscmp(bd, L"acrylic")) {
-            BACKDROP_TYPE = 3;
-        } else if (!wcscmp(bd, L"liveBlur")) {
-            BACKDROP_MODE = 1;
-        } else if (!wcscmp(bd, L"wallpaper")) {
-            BACKDROP_MODE = 2;
-        }
-        Wh_FreeStringSetting(bd);
+    const auto backdrop = WindhawkUtils::StringSetting::make(L"backdrop");
+    PCWSTR bd = backdrop.get();
+    if (!wcscmp(bd, L"micaAlt")) {
+        BACKDROP_TYPE = 4;
+    } else if (!wcscmp(bd, L"acrylic")) {
+        BACKDROP_TYPE = 3;
+    } else if (!wcscmp(bd, L"liveBlur")) {
+        BACKDROP_MODE = 1;
+    } else if (!wcscmp(bd, L"wallpaper")) {
+        BACKDROP_MODE = 2;
     }
 
     GESTURE_DISTANCE = static_cast<float>(SettingInt(L"swipeDistance", 60, 400));
     INVERT_Y = Wh_GetIntSetting(L"invertSwipe") != 0;
 
-    ENABLE_ALT_TAB_SWIPE = true;
-    if (PCWSTR hs = Wh_GetStringSetting(L"horizontalSwipe")) {
-        ENABLE_ALT_TAB_SWIPE = wcscmp(hs, L"ignore") != 0;
-        Wh_FreeStringSetting(hs);
-    }
+    ENABLE_ALT_TAB_SWIPE =
+        wcscmp(WindhawkUtils::StringSetting::make(L"horizontalSwipe").get(), L"ignore") != 0;
     ALT_TAB_RIGHT_IS_FORWARD = Wh_GetIntSetting(L"altTabReverse") == 0;
 
     SHOW_ICONS = Wh_GetIntSetting(L"showIcons") != 0;
@@ -6431,11 +7435,23 @@ static void LoadSettings() {
     HIDE_BEFORE_CLOSE = Wh_GetIntSetting(L"hideBeforeClose") != 0;
     SHOW_TITLES = Wh_GetIntSetting(L"showTitles") != 0;
     DESKTOP_BAR = Wh_GetIntSetting(L"desktopBar") != 0;
+    FINGER_COUNT =
+        wcscmp(WindhawkUtils::StringSetting::make(L"fingers").get(), L"four") == 0 ? 4 : 3;
+    REPLACE_WIN_TAB = Wh_GetIntSetting(L"replaceWinTab") != 0;
+    {
+        const auto altTab = WindhawkUtils::StringSetting::make(L"altTabInMissionControl");
+        PCWSTR m = altTab.get();
+        ALT_TAB_MC_MODE = !wcscmp(m, L"windows") ? 0 : (!wcscmp(m, L"block") ? 1 : 2);
+    }
+    {
+        const auto swipeDown = WindhawkUtils::StringSetting::make(L"swipeDown");
+        PCWSTR m = swipeDown.get();
+        SWIPE_DOWN_MODE = !wcscmp(m, L"minimize") ? 2 : (!wcscmp(m, L"allWindows") ? 1 : 0);
+    }
     KEYBOARD_SUPPORT = Wh_GetIntSetting(L"keyboardSupport") != 0;
     DISABLE_IN_FULLSCREEN = Wh_GetIntSetting(L"disableInFullscreen") != 0;
     RESPECT_REDUCED_MOTION = Wh_GetIntSetting(L"respectReducedMotion") != 0;
     PREWARM = Wh_GetIntSetting(L"prewarm") != 0;
-    VERBOSE_LOGGING = Wh_GetIntSetting(L"verboseLogging") != 0;
 
     const float speed = static_cast<float>(SettingInt(L"animationSpeed", 50, 200)) / 100.0f;
     SPRING_OMEGA = 24.0f * speed;
@@ -6455,16 +7471,36 @@ static void LoadSettings() {
     UpdateReducedMotion();
 }
 
-// Called by Windhawk when the settings window changes something: applied live,
-// from the next gesture on.
+// Called by Windhawk (on its own thread) when the settings window changes
+// something: applied live, from the next gesture on. The settings are plain
+// globals the touchpad thread reads, so they are loaded on that thread.
 void Wh_ModSettingsChanged() {
-    LoadSettings();
-    Wh_Log(L"Settings reloaded.");
+    if (!g_threadId || !PostThreadMessageW(g_threadId, WM_APP_SETTINGS, 0, 0)) {
+        LoadSettings();  // the thread isn't running
+    }
 }
 
 BOOL Wh_ModInit() {
-    Wh_Log(L"macOS Gestures Mission Control 1.3.1 initializing.");
+    Wh_Log(L"macOS Gestures Mission Control %s initializing.", WH_MOD_VERSION);
+
+    // "explorer.exe" also matches folder windows opened in a separate process
+    // and Explorer's COM servers. Only the shell process runs the mod: two
+    // instances would both answer the swipes, and cloaking the taskbar only
+    // works from the process that owns it. At logon the shell window doesn't
+    // exist yet; the touchpad thread checks again once it does.
+    const int shellOwner = ShellWindowOwner();
+    if (shellOwner < 0 || (shellOwner == 0 && IsSecondaryExplorerCommandLine())) {
+        Wh_Log(L"Not the shell's explorer.exe process: the mod doesn't run here.");
+        return FALSE;
+    }
+
     LoadSettings();
+
+    g_readyEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (!g_readyEvent) {
+        Wh_Log(L"CreateEventW failed: %lu", GetLastError());
+        return FALSE;
+    }
 
     g_thread = CreateThread(
         nullptr,
@@ -6477,13 +7513,17 @@ BOOL Wh_ModInit() {
 
     if (!g_thread) {
         Wh_Log(L"Failed to create touchpad thread.");
+        CloseHandle(g_readyEvent);
+        g_readyEvent = nullptr;
         return FALSE;
     }
 
-    // Deliberately NOT waiting for the thread here. At logon explorer is still
-    // starting, and blocking its init on the touchpad stack could stall both
-    // (and made the mod give up after a timeout). The thread keeps retrying on
-    // its own until the touchpad is ready.
+    // Waits only until the thread has its message queue (its first step). The
+    // slow part (touchpad stack, shell) is NOT waited for: at logon explorer is
+    // still starting, and blocking its init on it could stall both. The thread
+    // keeps retrying on its own until the touchpad is ready.
+    HANDLE waits[2] = { g_readyEvent, g_thread };
+    WaitForMultipleObjects(2, waits, FALSE, INFINITE);
     Wh_Log(L"macOS Gestures Mission Control started (initializing in background).");
 
     return TRUE;
